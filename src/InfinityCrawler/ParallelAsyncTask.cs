@@ -10,16 +10,13 @@ namespace InfinityCrawler
 {
 	internal static class ParallelAsyncTask
 	{
-		public static async Task For<TModel, TContext>(
+		public static async Task For<TModel>(
 			IEnumerable<TModel> items, 
-			Func<ItemContext<TModel, TContext>, ConcurrentQueue<ItemContext<TModel, TContext>>, Task> action, 
+			Func<TModel, ConcurrentQueue<TModel>, Task> action, 
 			int numberOfParallelAsyncTasks = 5
 		)
 		{
-			var itemsToProcess = new ConcurrentQueue<ItemContext<TModel, TContext>>(
-				items.Select(i => new ItemContext<TModel, TContext>(i)).ToArray()
-			);
-
+			var itemsToProcess = new ConcurrentQueue<TModel>(items);
 			var activeTasks = new ConcurrentDictionary<Task, byte>();
 
 			while (activeTasks.Count > 0 || !itemsToProcess.IsEmpty)
@@ -45,19 +42,6 @@ namespace InfinityCrawler
 				{
 					activeTasks.TryRemove(completedTask, out var val);
 				}
-			}
-		}
-
-		public class ItemContext<TModel, TContext>
-		{
-			public TModel Model { get; set; }
-			public TContext Context { get; set; }
-
-			public ItemContext() { }
-
-			public ItemContext(TModel model)
-			{
-				Model = model;
 			}
 		}
 	}

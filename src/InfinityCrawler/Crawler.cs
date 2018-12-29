@@ -32,140 +32,153 @@ namespace InfinityCrawler
 
 		public async Task<CrawlResult> Crawl(Uri siteUri, CrawlSettings settings)
 		{
+			var result = new CrawlResult
+			{
+				CrawlStart = DateTime.UtcNow
+			};
+			var stopwatch = new Stopwatch();
+			stopwatch.Start();
+
 			var baseUri = new Uri(siteUri.GetLeftPart(UriPartial.Authority));
 			var robotsFile = await new RobotsParser(HttpClient).FromUriAsync(baseUri);
 
-			var seedUris = new List<Uri>
+			var seedUris = new List<UriCrawlState>
 			{
-				baseUri
+				new UriCrawlState { Location = baseUri }
 			};
 
 			//Use any links referred to by the sitemap as a starting point
 			seedUris.AddRange((await new SitemapQuery(HttpClient)
 				.GetAllSitemapsForDomain(siteUri.Host))
-				.SelectMany(s => s.Urls.Select(u => u.Location))
+				.SelectMany(s => s.Urls.Select(u => new UriCrawlState { Location = u.Location }))
 				.Distinct()
 			);
 
-			var crawledUris = new ConcurrentDictionary<Uri, CrawledUriResult>();
+			var crawledUris = new ConcurrentDictionary<Uri, CrawledUri>();
 
-			await ParallelAsyncTask.For<Uri, CrawledUriContext>(seedUris, async (itemContext, pagesToCrawl) =>
+			await ParallelAsyncTask.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
 			{
-				CrawledUriResult entry = null;
-
-				if (crawledUris.ContainsKey(itemContext.Model))
+				var lastRequest = crawlState.Requests.LastOrDefault();
+				if (lastRequest.IsSuccessfulStatus)
 				{
-					entry = crawledUris[itemContext.Model];
-
-					var lastRequest = entry.Requests.LastOrDefault();
-					if (lastRequest.IsSuccessfulStatus)
-					{
-						return;
-					}
-
-					if (entry.Requests.Count() == settings.NumberOfRetries)
-					{
-						return;
-					}
-				}
-				else
-				{
-					entry = new CrawledUriResult
-					{
-						Location = itemContext.Model
-					};
+					return;
 				}
 
-				if (robotsFile.IsAllowedAccess(itemContext.Model, settings.UserAgent))
+				if (crawlState.Requests.Count() == settings.NumberOfRetries)
 				{
-					var crawlRequest = new CrawlRequest
-					{
-						RequestStart = DateTime.UtcNow,
-					};
+					return;
+				}
+
+				//TODO: Maybe move the robots check into a value in the state?
+				if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
+				{
+					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, settings);
+					crawledUris.TryAdd(crawlState.Location, crawledUri);
 					
-					var stopwatch = new Stopwatch();
-					stopwatch.Start();
-
-					using (var response = await HttpClient.GetAsync(itemContext.Model))
+					foreach (var crawlLink in crawledUri.Content.Links)
 					{
-						crawlRequest.StatusCode = response.StatusCode;
-						crawlRequest.IsSuccessfulStatus = response.IsSuccessStatusCode;
-
-						entry.Requests = entry.Requests.Concat(new[] { crawlRequest });
-
-						if (!crawlRequest.IsSuccessfulStatus)
+						if (!crawledUris.ContainsKey(crawlLink.Location))
 						{
-							stopwatch.Stop();
-							crawlRequest.ElapsedTime = stopwatch.Elapsed;
-							pagesToCrawl.Enqueue(itemContext);
-						}
-						else if (response.StatusCode == HttpStatusCode.MovedPermanently || response.StatusCode == HttpStatusCode.Redirect)
-						{
-							stopwatch.Stop();
-							crawlRequest.ElapsedTime = stopwatch.Elapsed;
-
-							var crawlContext = itemContext.Context ?? new CrawledUriContext();
-							crawlContext.RedirectChain.Add(new CrawledUriRedirect
+							pagesToCrawl.Enqueue(new UriCrawlState
 							{
-								Location = itemContext.Model,
-								Requests = entry.Requests
+								Location = crawlLink.Location
 							});
-
-							pagesToCrawl.Enqueue(new ParallelAsyncTask.ItemContext<Uri, CrawledUriContext>
-							{
-								Model = response.Headers.Location,
-								Context = crawlContext
-							});
-						}
-						else
-						{
-							entry.RedirectChain = itemContext.Context?.RedirectChain;
-
-							await response.Content.LoadIntoBufferAsync();
-
-							var crawledContent = new CrawledContent
-							{
-								ContentType = response.Content.Headers.ContentType.MediaType,
-								CharacterSet = response.Content.Headers.ContentType.CharSet,
-								ContentEncoding = string.Join(",", response.Content.Headers.ContentEncoding)
-							};
-
-							var contentStream = new MemoryStream();
-							await (await response.Content.ReadAsStreamAsync()).CopyToAsync(contentStream);
-							crawledContent.ContentStream = contentStream;
-
-							stopwatch.Stop();
-							crawlRequest.ElapsedTime = stopwatch.Elapsed;
-
-							//Find links to crawl
-							var reader = new StreamReader(contentStream);
-							var crawlLinks = await settings.LinkParser.Parse(reader);
-							crawledContent.Links = crawlLinks;
-							foreach (var crawlLink in crawlLinks)
-							{
-								if (!crawledUris.ContainsKey(crawlLink.Location))
-								{
-									pagesToCrawl.Enqueue(new ParallelAsyncTask.ItemContext<Uri, CrawledUriContext>(crawlLink.Location));
-								}
-							}
-
-							entry.Content = crawledContent;
 						}
 					}
 				}
 				else
 				{
-					entry.IsCrawlBlocked = true;
-					entry.BlockReason = $"{itemContext.Model} blocked by Robots file";
+					//TODO: Improve on the "IsCrawlBlocked" logic
+					crawledUris.TryAdd(crawlState.Location, new CrawledUri
+					{
+						Location = crawlState.Location,
+						IsCrawlBlocked = true,
+						BlockReason = $"{crawlState.Location} blocked by Robots file"
+					});
 				}
-
-				crawledUris.TryAdd(itemContext.Model, entry);
 			});
 
-			return new CrawlResult
+			stopwatch.Stop();
+			result.ElapsedTime = stopwatch.Elapsed;
+			result.CrawledUris = crawledUris.Values;
+			return result;
+		}
+
+		private async Task<CrawledUri> PerformRequest(UriCrawlState crawlState, ConcurrentQueue<UriCrawlState> pagesToCrawl, CrawlSettings settings)
+		{
+			var crawlRequest = new CrawlRequest
 			{
-				
+				RequestStart = DateTime.UtcNow,
 			};
+
+			var stopwatch = new Stopwatch();
+			stopwatch.Start();
+
+			using (var response = await HttpClient.GetAsync(crawlState.Location))
+			{
+				crawlRequest.StatusCode = response.StatusCode;
+				crawlRequest.IsSuccessfulStatus = response.IsSuccessStatusCode;
+				
+				await response.Content.LoadIntoBufferAsync();
+
+				stopwatch.Stop();
+				crawlRequest.ElapsedTime = stopwatch.Elapsed;
+
+				crawlState.Requests.Add(crawlRequest);
+
+				if (!crawlRequest.IsSuccessfulStatus)
+				{
+					pagesToCrawl.Enqueue(crawlState);
+					return null;
+				}
+				else if (response.StatusCode == HttpStatusCode.MovedPermanently || response.StatusCode == HttpStatusCode.Redirect)
+				{
+					var redirectCrawlState = new UriCrawlState
+					{
+						Location = response.Headers.Location,
+						Redirects = crawlState.Redirects ?? new List<CrawledUriRedirect>()
+					};
+
+					redirectCrawlState.Redirects.Add(new CrawledUriRedirect
+					{
+						Location = crawlState.Location,
+						Requests = crawlState.Requests
+					});
+
+					pagesToCrawl.Enqueue(redirectCrawlState);
+					return null;
+				}
+				else
+				{
+					return new CrawledUri
+					{
+						Location = crawlState.Location,
+						RedirectChain = crawlState.Redirects,
+						Requests = crawlState.Requests,
+						Content = await RetrieveContent(response, settings)
+					};
+				}
+			}
+		}
+
+		private async Task<CrawledContent> RetrieveContent(HttpResponseMessage response, CrawlSettings settings)
+		{
+			var crawledContent = new CrawledContent
+			{
+				ContentType = response.Content.Headers.ContentType.MediaType,
+				CharacterSet = response.Content.Headers.ContentType.CharSet,
+				ContentEncoding = string.Join(",", response.Content.Headers.ContentEncoding)
+			};
+
+			var contentStream = new MemoryStream();
+			await (await response.Content.ReadAsStreamAsync()).CopyToAsync(contentStream);
+			crawledContent.ContentStream = contentStream;
+
+			var reader = new StreamReader(contentStream);
+			var crawlLinks = await settings.LinkParser.Parse(reader);
+			crawledContent.Links = crawlLinks;
+
+			return crawledContent;
 		}
 	}
 }

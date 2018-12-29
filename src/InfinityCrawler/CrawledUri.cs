@@ -6,15 +6,15 @@ using System.Text;
 
 namespace InfinityCrawler
 {
-	public class CrawledUriResult
+	public class CrawledUri
 	{
 		public Uri Location { get; set; }
 
 		public bool IsCrawlBlocked { get; set; }
 		public string BlockReason { get; set; }
 		
-		public IEnumerable<CrawledUriRedirect> RedirectChain { get; set; }
-		public IEnumerable<CrawlRequest> Requests { get; set; }
+		public IList<CrawledUriRedirect> RedirectChain { get; set; }
+		public IList<CrawlRequest> Requests { get; set; }
 
 		public CrawledContent Content { get; set; }
 	}
@@ -22,7 +22,7 @@ namespace InfinityCrawler
 	public class CrawledUriRedirect
 	{
 		public Uri Location { get; set; }
-		public IEnumerable<CrawlRequest> Requests { get; set; }
+		public IList<CrawlRequest> Requests { get; set; }
 	}
 
 	public class CrawlRequest
