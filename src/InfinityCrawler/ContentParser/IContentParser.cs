@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace InfinityCrawler.LinkParser
 {
-	public interface IPageParser
+	public interface IContentParser
 	{
-		Task<IEnumerable<CrawlLink>> Parse(TextReader reader);
+		Task<CrawledContent> Parse(HttpResponseMessage response, CrawlSettings settings);
 	}
 }

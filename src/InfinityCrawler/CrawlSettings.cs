@@ -7,9 +7,10 @@ namespace InfinityCrawler
 {
 	public class CrawlSettings
 	{
-		public string UserAgent { get; set; }
-		public int NumberOfRetries { get; set; }
-		public IPageParser LinkParser { get; set; }
+		public string UserAgent { get; set; } = "Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201";
+		public int NumberOfRetries { get; set; } = 3;
+
+		public IContentParser ContentParser { get; set; } = new SimpleContentParser();
 
 		public ParallelAsyncTaskOptions ParallelAsyncTaskOptions { get; set; } = new ParallelAsyncTaskOptions
 		{

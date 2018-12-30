@@ -160,30 +160,10 @@ namespace InfinityCrawler
 						Status = CrawlStatus.Crawled,
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests,
-						Content = await RetrieveContent(response, settings)
+						Content = await settings.ContentParser.Parse(response, settings)
 					};
 				}
 			}
-		}
-
-		private async Task<CrawledContent> RetrieveContent(HttpResponseMessage response, CrawlSettings settings)
-		{
-			var crawledContent = new CrawledContent
-			{
-				ContentType = response.Content.Headers.ContentType.MediaType,
-				CharacterSet = response.Content.Headers.ContentType.CharSet,
-				ContentEncoding = string.Join(",", response.Content.Headers.ContentEncoding)
-			};
-
-			var contentStream = new MemoryStream();
-			await (await response.Content.ReadAsStreamAsync()).CopyToAsync(contentStream);
-			crawledContent.ContentStream = contentStream;
-
-			var reader = new StreamReader(contentStream);
-			var crawlLinks = await settings.LinkParser.Parse(reader);
-			crawledContent.Links = crawlLinks;
-
-			return crawledContent;
 		}
 	}
 }
