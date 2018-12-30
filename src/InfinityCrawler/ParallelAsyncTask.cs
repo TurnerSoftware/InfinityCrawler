@@ -73,6 +73,11 @@ namespace InfinityCrawler
 					activeTasks.TryRemove(completedTask, out var timer);
 					timer.Stop();
 
+					if (options.BubbleUpExceptions && completedTask.IsFaulted)
+					{
+						throw completedTask.Exception;
+					}
+
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
 					if (throttlePoint.TotalMilliseconds > 0 && timer.Elapsed > throttlePoint)
@@ -125,5 +130,9 @@ namespace InfinityCrawler
 		/// Maximum number of tasks to run before exiting. Zero means no limit.
 		/// </summary>
 		public int MaxNumberOfTasks { get; set; }
+		/// <summary>
+		/// Bubble up exceptions from faulted tasks.
+		/// </summary>
+		public bool BubbleUpExceptions { get; set; }
 	}
 }
