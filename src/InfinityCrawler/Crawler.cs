@@ -76,7 +76,7 @@ namespace InfinityCrawler
 				}
 
 				var lastRequest = crawlState.Requests.LastOrDefault();
-				if (lastRequest.IsSuccessfulStatus)
+				if (lastRequest != null && lastRequest.IsSuccessfulStatus)
 				{
 					return;
 				}
