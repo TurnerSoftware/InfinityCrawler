@@ -81,18 +81,21 @@ namespace InfinityCrawler
 				else if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
 				{
 					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, settings);
-					crawledUris.TryAdd(crawlState.Location, crawledUri);
-					
-					if (crawledUri.Content?.Links?.Any() == true)
+					if (crawledUri != null)
 					{
-						foreach (var crawlLink in crawledUri.Content.Links)
+						crawledUris.TryAdd(crawlState.Location, crawledUri);
+
+						if (crawledUri.Content?.Links?.Any() == true)
 						{
-							if (CanCrawlUri(crawlLink.Location, baseUri, crawledUris, settings))
+							foreach (var crawlLink in crawledUri.Content.Links)
 							{
-								pagesToCrawl.Enqueue(new UriCrawlState
+								if (CanCrawlUri(crawlLink.Location, baseUri, crawledUris, settings))
 								{
-									Location = crawlLink.Location
-								});
+									pagesToCrawl.Enqueue(new UriCrawlState
+									{
+										Location = crawlLink.Location
+									});
+								}
 							}
 						}
 					}
