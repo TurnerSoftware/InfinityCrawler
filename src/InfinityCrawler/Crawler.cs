@@ -58,20 +58,8 @@ namespace InfinityCrawler
 
 			await ParallelAsyncTask.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
 			{
-				if (
-					settings.HostAliases != null && 
-					!(
-						crawlState.Location.Host == baseUri.Host ||
-						settings.HostAliases.Contains(crawlState.Location.Host)
-					)
-				)
+				if (!CanCrawlUri(crawlState.Location, baseUri, crawledUris, settings))
 				{
-					//Current host is not in the list of allowed hosts or matches base host
-					return;
-				}
-				else if (crawlState.Location.Host != baseUri.Host)
-				{
-					//Current host doesn't match base host
 					return;
 				}
 
@@ -99,7 +87,7 @@ namespace InfinityCrawler
 					{
 						foreach (var crawlLink in crawledUri.Content.Links)
 						{
-							if (!crawledUris.ContainsKey(crawlLink.Location))
+							if (CanCrawlUri(crawlLink.Location, baseUri, crawledUris, settings))
 							{
 								pagesToCrawl.Enqueue(new UriCrawlState
 								{
@@ -123,6 +111,32 @@ namespace InfinityCrawler
 			result.ElapsedTime = stopwatch.Elapsed;
 			result.CrawledUris = crawledUris.Values;
 			return result;
+		}
+
+		private bool CanCrawlUri(Uri uriToCheck, Uri baseUri, ConcurrentDictionary<Uri, CrawledUri> crawledUris, CrawlSettings settings)
+		{
+			if (
+				settings.HostAliases != null &&
+				!(
+					uriToCheck.Host == baseUri.Host ||
+					settings.HostAliases.Contains(uriToCheck.Host)
+				)
+			)
+			{
+				//Current host is not in the list of allowed hosts or matches base host
+				return false;
+			}
+			else if (uriToCheck.Host != baseUri.Host)
+			{
+				//Current host doesn't match base host
+				return false;
+			}
+			else if (crawledUris.ContainsKey(uriToCheck))
+			{
+				return false;
+			}
+
+			return true;
 		}
 
 		private async Task<CrawledUri> PerformRequest(UriCrawlState crawlState, ConcurrentQueue<UriCrawlState> pagesToCrawl, CrawlSettings settings)
