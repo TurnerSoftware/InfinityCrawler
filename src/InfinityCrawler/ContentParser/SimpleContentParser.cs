@@ -82,31 +82,35 @@ namespace InfinityCrawler.LinkParser
 				}
 			}
 
-			var crawledLinks = new List<CrawlLink>();
-			foreach (var anchor in document.DocumentNode.SelectNodes("a"))
+			var anchorNodes = document.DocumentNode.SelectNodes("//a");
+			if (anchorNodes != null)
 			{
-				var href = anchor.GetAttributeValue("href", null);
-				if (href == null)
+				var crawledLinks = new List<CrawlLink>();
+				foreach (var anchor in anchorNodes)
 				{
-					continue;
-				}
+					var href = anchor.GetAttributeValue("href", null);
+					if (href == null)
+					{
+						continue;
+					}
 
-				var anchorLocation = uri.BuildUriFromHref(href);
-				if (anchorLocation == null)
-				{
-					//Invalid links are ignored
-					continue;
+					var anchorLocation = uri.BuildUriFromHref(href);
+					if (anchorLocation == null)
+					{
+						//Invalid links are ignored
+						continue;
+					}
+
+					crawledLinks.Add(new CrawlLink
+					{
+						Location = anchorLocation,
+						Title = anchor.GetAttributeValue("title", null),
+						Text = anchor.InnerText,
+						Relationship = anchor.GetAttributeValue("rel", null),
+					});
 				}
-				
-				crawledLinks.Add(new CrawlLink
-				{
-					Location = anchorLocation,
-					Title = anchor.GetAttributeValue("title", null),
-					Text = anchor.InnerText,
-					Relationship = anchor.GetAttributeValue("rel", null),
-				});
+				result.Links = crawledLinks;
 			}
-			result.Links = crawledLinks;
 
 			return result;
 		}
