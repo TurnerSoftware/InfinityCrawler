@@ -28,6 +28,7 @@ namespace InfinityCrawler
 
 			var currentBackoff = 0;
 			var successesSinceLastThrottle = 0;
+			var taskCount = 0;
 
 			while (activeTasks.Count > 0 || !itemsToProcess.IsEmpty)
 			{
@@ -39,7 +40,16 @@ namespace InfinityCrawler
 						var timer = new Stopwatch();
 						timer.Start();
 						activeTasks.TryAdd(task, timer);
+						taskCount++;
 
+						//Max task early exit
+						if (options.MaxNumberOfTasks != 0 && taskCount == options.MaxNumberOfTasks)
+						{
+							await Task.WhenAll(activeTasks.Keys);
+							return;
+						}
+
+						//Task delaying and backoff
 						if (options.DelayBetweenTaskStart.TotalMilliseconds > 0)
 						{
 							var taskStartDelay = options.DelayBetweenTaskStart.TotalMilliseconds;
@@ -63,6 +73,7 @@ namespace InfinityCrawler
 					activeTasks.TryRemove(completedTask, out var timer);
 					timer.Stop();
 
+					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
 					if (throttlePoint.TotalMilliseconds > 0 && timer.Elapsed > throttlePoint)
 					{
@@ -110,5 +121,9 @@ namespace InfinityCrawler
 		/// Minimum number of tasks below the timeout before minimising the applied throttling. Default is 5 tasks.
 		/// </summary>
 		public int MinSequentialSuccessesToMinimiseThrottling { get; set; } = 5;
+		/// <summary>
+		/// Maximum number of tasks to run before exiting. Zero means no limit.
+		/// </summary>
+		public int MaxNumberOfTasks { get; set; }
 	}
 }
