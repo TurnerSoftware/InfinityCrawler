@@ -100,7 +100,7 @@ namespace InfinityCrawler
 						Status = CrawlStatus.Blocked
 					});
 				}
-			});
+			}, settings.ParallelAsyncTaskOptions);
 
 			stopwatch.Stop();
 			result.ElapsedTime = stopwatch.Elapsed;
