@@ -27,13 +27,16 @@ namespace InfinityCrawler.LinkParser
 
 			var parsedContent = Parse(uri, contentStream);
 
-			var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
-			parsedContent.NoIndex = robotsHeaderValues.Any(r => 
-				r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1
-			);
-			parsedContent.NoFollow = robotsHeaderValues.Any(r =>
-				r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
-			);
+			if (response.Headers.Contains("X-Robots-Tag"))
+			{
+				var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
+				parsedContent.NoIndex = robotsHeaderValues.Any(r =>
+					r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1
+				);
+				parsedContent.NoFollow = robotsHeaderValues.Any(r =>
+					r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
+				);
+			}
 
 			if (parsedContent.NoIndex)
 			{
