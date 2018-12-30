@@ -21,7 +21,7 @@ namespace InfinityCrawler
 	public enum CrawlStatus
 	{
 		Crawled,
-		Blocked,
+		RobotsBlocked,
 		MaxRetries
 	}
 	

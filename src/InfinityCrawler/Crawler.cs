@@ -58,6 +58,23 @@ namespace InfinityCrawler
 
 			await ParallelAsyncTask.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
 			{
+				if (
+					settings.HostAliases != null && 
+					!(
+						crawlState.Location.Host == baseUri.Host ||
+						settings.HostAliases.Contains(crawlState.Location.Host)
+					)
+				)
+				{
+					//Current host is not in the list of allowed hosts or matches base host
+					return;
+				}
+				else if (crawlState.Location.Host != baseUri.Host)
+				{
+					//Current host doesn't match base host
+					return;
+				}
+
 				var lastRequest = crawlState.Requests.LastOrDefault();
 				if (lastRequest.IsSuccessfulStatus)
 				{
@@ -97,7 +114,7 @@ namespace InfinityCrawler
 					crawledUris.TryAdd(crawlState.Location, new CrawledUri
 					{
 						Location = crawlState.Location,
-						Status = CrawlStatus.Blocked
+						Status = CrawlStatus.RobotsBlocked
 					});
 				}
 			}, settings.ParallelAsyncTaskOptions);
