@@ -160,7 +160,7 @@ namespace InfinityCrawler
 						Status = CrawlStatus.Crawled,
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests,
-						Content = await settings.ContentParser.Parse(response, settings)
+						Content = await settings.ContentParser.Parse(crawlState.Location, response, settings)
 					};
 				}
 			}

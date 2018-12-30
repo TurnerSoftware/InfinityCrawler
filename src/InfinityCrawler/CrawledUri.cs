@@ -46,6 +46,7 @@ namespace InfinityCrawler
 		public string ContentEncoding { get; set; }
 
 		public MemoryStream ContentStream { get; set; }
+		public Uri CanonicalUri { get; set; }
 		public IEnumerable<CrawlLink> Links { get; set; }
 	}
 }

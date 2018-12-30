@@ -9,6 +9,6 @@ namespace InfinityCrawler.LinkParser
 {
 	public interface IContentParser
 	{
-		Task<CrawledContent> Parse(HttpResponseMessage response, CrawlSettings settings);
+		Task<CrawledContent> Parse(Uri uri, HttpResponseMessage response, CrawlSettings settings);
 	}
 }

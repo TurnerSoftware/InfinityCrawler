@@ -9,6 +9,7 @@ namespace InfinityCrawler
 	{
 		public string UserAgent { get; set; } = "Mozilla/5.0 (Windows; U; Windows NT 6.1; rv:2.2) Gecko/20110201";
 		public int NumberOfRetries { get; set; } = 3;
+		public bool AllowSubdomains { get; set; }
 
 		public IContentParser ContentParser { get; set; } = new SimpleContentParser();
 

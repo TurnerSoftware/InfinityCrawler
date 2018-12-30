@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using HtmlAgilityPack;
 
 namespace InfinityCrawler.LinkParser
 {
 	public class SimpleContentParser : IContentParser
 	{
-		public async Task<CrawledContent> Parse(HttpResponseMessage response, CrawlSettings settings)
+		public async Task<CrawledContent> Parse(Uri uri, HttpResponseMessage response, CrawlSettings settings)
 		{
 			var crawledContent = new CrawledContent
 			{
@@ -17,22 +19,104 @@ namespace InfinityCrawler.LinkParser
 				CharacterSet = response.Content.Headers.ContentType.CharSet,
 				ContentEncoding = string.Join(",", response.Content.Headers.ContentEncoding)
 			};
-
+			
 			var contentStream = new MemoryStream();
 			await(await response.Content.ReadAsStreamAsync()).CopyToAsync(contentStream);
 			crawledContent.ContentStream = contentStream;
 			contentStream.Seek(0, SeekOrigin.Begin);
-			
-			crawledContent.Links = await GetLinks(contentStream);
+
+			var parsedContent = Parse(uri, contentStream);
+
+			var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
+			parsedContent.NoIndex = robotsHeaderValues.Any(r => 
+				r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1
+			);
+			parsedContent.NoFollow = robotsHeaderValues.Any(r =>
+				r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
+			);
+
+			if (parsedContent.NoIndex)
+			{
+				crawledContent.ContentStream = null;
+				contentStream.Dispose();
+			}
+
+			if (!parsedContent.NoFollow)
+			{
+				crawledContent.Links = parsedContent.Links;
+			}
 
 			return crawledContent;
 		}
 
-		private async Task<IEnumerable<CrawlLink>> GetLinks(Stream contentStream)
+		private ParsedContent Parse(Uri uri, Stream contentStream)
 		{
-			//TODO
-			await Task.Yield();
-			return null;
+			var result = new ParsedContent();
+
+			var document = new HtmlDocument();
+			document.Load(contentStream);
+
+			var robotsMetaNode = document.DocumentNode.SelectSingleNode("html/head/meta[@name=\"ROBOTS\"]");
+
+			if (robotsMetaNode != null)
+			{
+				var robotsMetaContent = robotsMetaNode.GetAttributeValue("content", null);
+				if (robotsMetaContent.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1)
+				{
+					result.NoIndex = true;
+				}
+				if (robotsMetaContent.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1)
+				{
+					result.NoFollow = true;
+					return result;
+				}
+			}
+
+			var canonicalNode = document.DocumentNode.SelectSingleNode("html/head/link[@rel=\"canonical\"]");
+			if (canonicalNode != null)
+			{
+				var canonicalHref = canonicalNode.GetAttributeValue("href", null);
+				if (canonicalHref != null && Uri.TryCreate(canonicalHref, UriKind.Absolute, out var canonicalUri))
+				{
+					result.CanonicalUri = canonicalUri;
+				}
+			}
+
+			var crawledLinks = new List<CrawlLink>();
+			foreach (var anchor in document.DocumentNode.SelectNodes("a"))
+			{
+				var href = anchor.GetAttributeValue("href", null);
+				if (href == null)
+				{
+					continue;
+				}
+
+				var anchorLocation = uri.BuildUriFromHref(href);
+				if (anchorLocation == null)
+				{
+					//Invalid links are ignored
+					continue;
+				}
+				
+				crawledLinks.Add(new CrawlLink
+				{
+					Location = anchorLocation,
+					Title = anchor.GetAttributeValue("title", null),
+					Text = anchor.InnerText,
+					Relationship = anchor.GetAttributeValue("rel", null),
+				});
+			}
+			result.Links = crawledLinks;
+
+			return result;
+		}
+
+		private class ParsedContent
+		{
+			public bool NoIndex { get; set; }
+			public bool NoFollow { get; set; }
+			public Uri CanonicalUri { get; set; }
+			public IEnumerable<CrawlLink> Links { get; set; }
 		}
 	}
 }
