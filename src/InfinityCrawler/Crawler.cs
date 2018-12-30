@@ -81,6 +81,7 @@ namespace InfinityCrawler
 				else if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
 				{
 					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, settings);
+
 					if (crawledUri != null)
 					{
 						crawledUris.TryAdd(crawlState.Location, crawledUri);
@@ -164,12 +165,14 @@ namespace InfinityCrawler
 
 				crawlState.Requests.Add(crawlRequest);
 
-				if (!crawlRequest.IsSuccessfulStatus)
+				var redirectStatusCodes = new[]
 				{
-					pagesToCrawl.Enqueue(crawlState);
-					return null;
-				}
-				else if (response.StatusCode == HttpStatusCode.MovedPermanently || response.StatusCode == HttpStatusCode.Redirect)
+					HttpStatusCode.MovedPermanently,
+					HttpStatusCode.Redirect,
+					HttpStatusCode.TemporaryRedirect
+				};
+
+				if (redirectStatusCodes.Contains(crawlRequest.StatusCode))
 				{
 					var redirectCrawlState = new UriCrawlState
 					{
@@ -186,7 +189,7 @@ namespace InfinityCrawler
 					pagesToCrawl.Enqueue(redirectCrawlState);
 					return null;
 				}
-				else
+				else if (crawlRequest.IsSuccessfulStatus)
 				{
 					return new CrawledUri
 					{
@@ -195,6 +198,24 @@ namespace InfinityCrawler
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests,
 						Content = await settings.ContentParser.Parse(crawlState.Location, response, settings)
+					};
+				}
+				else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
+				{
+					//On server errors, try to crawl the page again later
+					pagesToCrawl.Enqueue(crawlState);
+					return null;
+				}
+				else
+				{
+					//On any other error, just save what we have seen and move on
+					//Consider the content of the request irrelevant
+					return new CrawledUri
+					{
+						Location = crawlState.Location,
+						Status = CrawlStatus.Crawled,
+						RedirectChain = crawlState.Redirects,
+						Requests = crawlState.Requests
 					};
 				}
 			}
