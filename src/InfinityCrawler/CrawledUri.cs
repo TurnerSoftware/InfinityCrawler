@@ -10,13 +10,19 @@ namespace InfinityCrawler
 	{
 		public Uri Location { get; set; }
 
-		public bool IsCrawlBlocked { get; set; }
-		public string BlockReason { get; set; }
+		public CrawlStatus Status { get; set; }
 		
 		public IList<CrawledUriRedirect> RedirectChain { get; set; }
 		public IList<CrawlRequest> Requests { get; set; }
 
 		public CrawledContent Content { get; set; }
+	}
+
+	public enum CrawlStatus
+	{
+		Crawled,
+		Blocked,
+		MaxRetries
 	}
 	
 	public class CrawledUriRedirect

@@ -63,37 +63,41 @@ namespace InfinityCrawler
 				{
 					return;
 				}
-
-				if (crawlState.Requests.Count() == settings.NumberOfRetries)
+				else if (crawlState.Requests.Count() == settings.NumberOfRetries)
 				{
-					return;
+					crawledUris.TryAdd(crawlState.Location, new CrawledUri
+					{
+						Location = crawlState.Location,
+						Status = CrawlStatus.MaxRetries,
+						Requests = crawlState.Requests,
+						RedirectChain = crawlState.Redirects
+					});
 				}
-
-				//TODO: Maybe move the robots check into a value in the state?
-				if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
+				else if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
 				{
 					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, settings);
 					crawledUris.TryAdd(crawlState.Location, crawledUri);
 					
-					foreach (var crawlLink in crawledUri.Content.Links)
+					if (crawledUri.Content?.Links?.Any() == true)
 					{
-						if (!crawledUris.ContainsKey(crawlLink.Location))
+						foreach (var crawlLink in crawledUri.Content.Links)
 						{
-							pagesToCrawl.Enqueue(new UriCrawlState
+							if (!crawledUris.ContainsKey(crawlLink.Location))
 							{
-								Location = crawlLink.Location
-							});
+								pagesToCrawl.Enqueue(new UriCrawlState
+								{
+									Location = crawlLink.Location
+								});
+							}
 						}
 					}
 				}
 				else
 				{
-					//TODO: Improve on the "IsCrawlBlocked" logic
 					crawledUris.TryAdd(crawlState.Location, new CrawledUri
 					{
 						Location = crawlState.Location,
-						IsCrawlBlocked = true,
-						BlockReason = $"{crawlState.Location} blocked by Robots file"
+						Status = CrawlStatus.Blocked
 					});
 				}
 			});
@@ -153,6 +157,7 @@ namespace InfinityCrawler
 					return new CrawledUri
 					{
 						Location = crawlState.Location,
+						Status = CrawlStatus.Crawled,
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests,
 						Content = await RetrieveContent(response, settings)
