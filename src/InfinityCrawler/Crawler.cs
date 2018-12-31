@@ -51,6 +51,12 @@ namespace InfinityCrawler
 			var baseUri = new Uri(siteUri.GetLeftPart(UriPartial.Authority));
 			var robotsFile = await new RobotsParser(HttpClient).FromUriAsync(baseUri);
 
+			//Apply Robots.txt crawl-delay (if defined)
+			var userAgentEntry = robotsFile.GetEntryForUserAgent(settings.UserAgent);
+			var minimumCrawlDelay = userAgentEntry?.CrawlDelay ?? 0;
+			var taskDelay = Math.Max(minimumCrawlDelay * 1000, settings.TaskHandlerOptions.DelayBetweenTaskStart.TotalMilliseconds);
+			settings.TaskHandlerOptions.DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, (int)taskDelay);
+
 			var seedUris = new List<UriCrawlState>
 			{
 				new UriCrawlState { Location = baseUri }
