@@ -36,9 +36,19 @@ namespace InfinityCrawler
 				{
 					if (itemsToProcess.TryDequeue(out var item))
 					{
-						var task = action(item, itemsToProcess);
+						var taskStartDelay = 0d;
+						//Task delaying and backoff
+						if (options.DelayBetweenTaskStart.TotalMilliseconds > 0)
+						{
+							taskStartDelay = options.DelayBetweenTaskStart.TotalMilliseconds;
+							taskStartDelay += random.NextDouble() * options.DelayJitter.TotalMilliseconds;
+						}
+
+						taskStartDelay += currentBackoff;
+						
 						var timer = new Stopwatch();
-						timer.Start();
+						var task = RunAction(item, action, itemsToProcess, (int)taskStartDelay, timer);
+						
 						activeTasks.TryAdd(task, timer);
 						taskCount++;
 
@@ -47,15 +57,6 @@ namespace InfinityCrawler
 						{
 							await Task.WhenAll(activeTasks.Keys);
 							return;
-						}
-
-						//Task delaying and backoff
-						if (options.DelayBetweenTaskStart.TotalMilliseconds > 0)
-						{
-							var taskStartDelay = options.DelayBetweenTaskStart.TotalMilliseconds;
-							taskStartDelay += random.NextDouble() * options.DelayJitter.TotalMilliseconds;
-							taskStartDelay += currentBackoff;
-							Thread.Sleep((int)taskStartDelay);
 						}
 
 						if (activeTasks.Count == options.MaxNumberOfSimultaneousTasks)
@@ -84,6 +85,7 @@ namespace InfinityCrawler
 					{
 						successesSinceLastThrottle = 0;
 						currentBackoff += (int)options.ThrottlingRequestBackoff.TotalMilliseconds;
+						Console.WriteLine($"New backoff: {currentBackoff}ms");
 					}
 					else if (currentBackoff > 0)
 					{
@@ -93,10 +95,22 @@ namespace InfinityCrawler
 							var newBackoff = currentBackoff - options.ThrottlingRequestBackoff.TotalMilliseconds;
 							currentBackoff = Math.Max(0, (int)newBackoff);
 							successesSinceLastThrottle = 0;
+							Console.WriteLine($"New backoff: {currentBackoff}ms");
 						}
 					}
 				}
 			}
+		}
+
+		private static async Task RunAction<TModel>(TModel item, Func<TModel, ConcurrentQueue<TModel>, Task> action, ConcurrentQueue<TModel> itemsToProcess, int delay, Stopwatch timer)
+		{
+			if (delay > 0)
+			{
+				await Task.Delay(delay);
+			}
+			timer.Start();
+			await action(item, itemsToProcess);
+			timer.Stop();
 		}
 	}
 
