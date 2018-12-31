@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace InfinityCrawler.LinkParser
+namespace InfinityCrawler.ContentParsers
 {
 	public interface IContentParser
 	{

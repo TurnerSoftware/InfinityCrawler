@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using InfinityCrawler.LinkParser;
+using InfinityCrawler.ContentParsers;
 using InfinityCrawler.TaskHandlers;
 
 namespace InfinityCrawler

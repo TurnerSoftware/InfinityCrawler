@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
 
-namespace InfinityCrawler.LinkParser
+namespace InfinityCrawler.ContentParsers
 {
 	public class SimpleContentParser : IContentParser
 	{
