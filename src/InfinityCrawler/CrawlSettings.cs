@@ -15,11 +15,11 @@ namespace InfinityCrawler
 
 		public ParallelAsyncTaskOptions ParallelAsyncTaskOptions { get; set; } = new ParallelAsyncTaskOptions
 		{
-			MaxNumberOfSimultaneousTasks = 5,
-			DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 500),
-			DelayJitter = new TimeSpan(0, 0, 0, 1),
+			MaxNumberOfSimultaneousTasks = 10,
+			DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 250),
+			DelayJitter = new TimeSpan(0, 0, 0, 0, 500),
 			ThrottlingRequestBackoff = new TimeSpan(0, 0, 0, 2),
-			TimeoutBeforeThrottle = new TimeSpan(0, 0, 0, 2),
+			TimeoutBeforeThrottle = new TimeSpan(0, 0, 0, 5),
 			MinSequentialSuccessesToMinimiseThrottling = 5
 		};
 
