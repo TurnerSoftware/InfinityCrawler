@@ -63,14 +63,24 @@ namespace InfinityCrawler
 				.Distinct()
 			);
 
-			var crawledUris = new ConcurrentDictionary<Uri, CrawledUri>();
+			var crawlContext = new CrawlContext
+			{
+				Settings = settings
+			};
 
 			await TaskHandler.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
 			{
-				if (!CanCrawlUri(crawlState.Location, baseUri, crawledUris, settings))
+				if (!CheckUriValidity(crawlState.Location, baseUri, crawlContext))
 				{
 					return;
 				}
+
+				if (crawlContext.CrawledUris.ContainsKey(crawlState.Location))
+				{
+					return;
+				}
+
+				crawlContext.SeenUris.TryAdd(crawlState.Location, 0);
 
 				var lastRequest = crawlState.Requests.LastOrDefault();
 				if (lastRequest != null && lastRequest.IsSuccessfulStatus)
@@ -79,7 +89,7 @@ namespace InfinityCrawler
 				}
 				else if (crawlState.Requests.Count() == settings.NumberOfRetries)
 				{
-					crawledUris.TryAdd(crawlState.Location, new CrawledUri
+					crawlContext.CrawledUris.TryAdd(crawlState.Location, new CrawledUri
 					{
 						Location = crawlState.Location,
 						Status = CrawlStatus.MaxRetries,
@@ -89,18 +99,23 @@ namespace InfinityCrawler
 				}
 				else if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
 				{
-					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, settings);
-
+					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, crawlContext);
 					if (crawledUri != null)
 					{
-						crawledUris.TryAdd(crawlState.Location, crawledUri);
+						crawlContext.CrawledUris.TryAdd(crawlState.Location, crawledUri);
 
 						if (crawledUri.Content?.Links?.Any() == true)
 						{
 							foreach (var crawlLink in crawledUri.Content.Links)
 							{
-								if (CanCrawlUri(crawlLink.Location, baseUri, crawledUris, settings))
+								if (CheckUriValidity(crawlLink.Location, baseUri, crawlContext))
 								{
+									if (crawlContext.SeenUris.ContainsKey(crawlLink.Location))
+									{
+										continue;
+									}
+
+									crawlContext.SeenUris.TryAdd(crawlLink.Location, 0);
 									pagesToCrawl.Enqueue(new UriCrawlState
 									{
 										Location = crawlLink.Location
@@ -112,7 +127,7 @@ namespace InfinityCrawler
 				}
 				else
 				{
-					crawledUris.TryAdd(crawlState.Location, new CrawledUri
+					crawlContext.CrawledUris.TryAdd(crawlState.Location, new CrawledUri
 					{
 						Location = crawlState.Location,
 						Status = CrawlStatus.RobotsBlocked
@@ -122,17 +137,17 @@ namespace InfinityCrawler
 
 			stopwatch.Stop();
 			result.ElapsedTime = stopwatch.Elapsed;
-			result.CrawledUris = crawledUris.Values;
+			result.CrawledUris = crawlContext.CrawledUris.Values;
 			return result;
 		}
 
-		private bool CanCrawlUri(Uri uriToCheck, Uri baseUri, ConcurrentDictionary<Uri, CrawledUri> crawledUris, CrawlSettings settings)
+		private bool CheckUriValidity(Uri uriToCheck, Uri baseUri, CrawlContext context)
 		{
 			if (
-				settings.HostAliases != null &&
+				context.Settings.HostAliases != null &&
 				!(
 					uriToCheck.Host == baseUri.Host ||
-					settings.HostAliases.Contains(uriToCheck.Host)
+					context.Settings.HostAliases.Contains(uriToCheck.Host)
 				)
 			)
 			{
@@ -144,15 +159,11 @@ namespace InfinityCrawler
 				//Current host doesn't match base host
 				return false;
 			}
-			else if (crawledUris.ContainsKey(uriToCheck))
-			{
-				return false;
-			}
 
 			return true;
 		}
 
-		private async Task<CrawledUri> PerformRequest(UriCrawlState crawlState, ConcurrentQueue<UriCrawlState> pagesToCrawl, CrawlSettings settings)
+		private async Task<CrawledUri> PerformRequest(UriCrawlState crawlState, ConcurrentQueue<UriCrawlState> pagesToCrawl, CrawlContext context)
 		{
 			var crawlRequest = new CrawlRequest
 			{
@@ -197,6 +208,7 @@ namespace InfinityCrawler
 					});
 
 					pagesToCrawl.Enqueue(redirectCrawlState);
+					context.SeenUris.TryAdd(headerLocation, 0);
 					return null;
 				}
 				else if (crawlRequest.IsSuccessfulStatus)
@@ -207,7 +219,7 @@ namespace InfinityCrawler
 						Status = CrawlStatus.Crawled,
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests,
-						Content = await settings.ContentParser.Parse(crawlState.Location, response, settings)
+						Content = await context.Settings.ContentParser.Parse(crawlState.Location, response, context.Settings)
 					};
 				}
 				else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
@@ -229,6 +241,13 @@ namespace InfinityCrawler
 					};
 				}
 			}
+		}
+
+		private class CrawlContext
+		{
+			public CrawlSettings Settings { get; set; }
+			public ConcurrentDictionary<Uri, CrawledUri> CrawledUris { get; } = new ConcurrentDictionary<Uri, CrawledUri>();
+			public ConcurrentDictionary<Uri, byte> SeenUris { get; } = new ConcurrentDictionary<Uri, byte>();
 		}
 	}
 }
