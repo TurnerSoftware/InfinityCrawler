@@ -14,7 +14,7 @@ namespace InfinityCrawler.TaskHandlers
 	{
 		private ILogger Logger { get; }
 
-		public ParallelAsyncTaskHandler(ILogger logger)
+		public ParallelAsyncTaskHandler(ILogger logger = null)
 		{
 			Logger = logger;
 		}
