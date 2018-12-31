@@ -174,9 +174,10 @@ namespace InfinityCrawler
 
 				if (redirectStatusCodes.Contains(crawlRequest.StatusCode))
 				{
+					var headerLocation = response.Headers.Location;
 					var redirectCrawlState = new UriCrawlState
 					{
-						Location = response.Headers.Location,
+						Location = new Uri(crawlState.Location, headerLocation.ToString()),
 						Redirects = crawlState.Redirects ?? new List<CrawledUriRedirect>()
 					};
 
