@@ -6,7 +6,7 @@ namespace InfinityCrawler
 {
 	internal static class UriExtensions
 	{
-		public static Uri BuildUriFromHref(this Uri pageUri, string href)
+		public static Uri BuildUriFromHref(this Uri pageUri, string href, string baseHref = null)
 		{
 			if (Uri.IsWellFormedUriString(href, UriKind.Absolute))
 			{
@@ -14,7 +14,15 @@ namespace InfinityCrawler
 			}
 			else if (Uri.IsWellFormedUriString(href, UriKind.Relative))
 			{
-				return new Uri(pageUri, href);
+				if (baseHref != null && Uri.IsWellFormedUriString(baseHref, UriKind.Absolute))
+				{
+					//Allows <base href=""> to work
+					return new Uri(new Uri(baseHref), href);
+				}
+				else
+				{
+					return new Uri(pageUri, href);
+				}
 			}
 
 			return null;

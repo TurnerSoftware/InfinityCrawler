@@ -85,6 +85,13 @@ namespace InfinityCrawler.LinkParser
 				}
 			}
 
+			string baseHref = null;
+			var baseNode = document.DocumentNode.SelectSingleNode("html/head/base");
+			if (baseNode != null)
+			{
+				baseHref = baseNode.GetAttributeValue("href", null);
+			}
+			
 			var anchorNodes = document.DocumentNode.SelectNodes("//a");
 			if (anchorNodes != null)
 			{
@@ -97,7 +104,7 @@ namespace InfinityCrawler.LinkParser
 						continue;
 					}
 
-					var anchorLocation = uri.BuildUriFromHref(href);
+					var anchorLocation = uri.BuildUriFromHref(href, baseHref);
 					if (anchorLocation == null)
 					{
 						//Invalid links are ignored
