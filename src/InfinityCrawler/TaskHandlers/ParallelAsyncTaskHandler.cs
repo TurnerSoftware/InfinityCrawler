@@ -32,7 +32,7 @@ namespace InfinityCrawler.TaskHandlers
 
 			var random = new Random();
 			var itemsToProcess = new ConcurrentQueue<TModel>(items);
-			var activeTasks = new ConcurrentDictionary<Task, Stopwatch>();
+			var activeTasks = new ConcurrentDictionary<Task, TaskContext>();
 
 			var currentBackoff = 0;
 			var successesSinceLastThrottle = 0;
@@ -54,12 +54,16 @@ namespace InfinityCrawler.TaskHandlers
 
 						taskStartDelay += currentBackoff;
 
-						var timer = new Stopwatch();
-						var task = RunAction(item, action, itemsToProcess, (int)taskStartDelay, timer);
+						var taskContext = new TaskContext
+						{
+							TaskNumber = taskCount + 1,
+							Timer = new Stopwatch()
+						};
+						var task = RunAction(item, action, itemsToProcess, (int)taskStartDelay, taskContext);
 
-						Logger?.LogDebug($"Task #{task.Id} started with {taskStartDelay}ms delay");
+						Logger?.LogDebug($"Task #{taskContext.TaskNumber} started with {taskStartDelay}ms delay");
 
-						activeTasks.TryAdd(task, timer);
+						activeTasks.TryAdd(task, taskContext);
 						taskCount++;
 
 						//Max task early exit
@@ -82,7 +86,7 @@ namespace InfinityCrawler.TaskHandlers
 				var completedTasks = activeTasks.Keys.Where(t => t.IsCompleted);
 				foreach (var completedTask in completedTasks)
 				{
-					activeTasks.TryRemove(completedTask, out var timer);
+					activeTasks.TryRemove(completedTask, out var taskContext);
 
 					if (completedTask.IsFaulted)
 					{
@@ -92,15 +96,15 @@ namespace InfinityCrawler.TaskHandlers
 						}
 						else
 						{
-							Logger?.LogError(completedTask.Exception, $"Task #{completedTask.Id} has completed in a faulted state");
+							Logger?.LogError(completedTask.Exception, $"Task #{taskContext.TaskNumber} has completed in a faulted state");
 						}
 					}
 
-					Logger?.LogDebug($"Task #{completedTask.Id} completed in {timer.ElapsedMilliseconds}ms");
+					Logger?.LogDebug($"Task #{taskContext.TaskNumber} completed in {taskContext.Timer.ElapsedMilliseconds}ms");
 
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
-					if (throttlePoint.TotalMilliseconds > 0 && timer.Elapsed > throttlePoint)
+					if (throttlePoint.TotalMilliseconds > 0 && taskContext.Timer.Elapsed > throttlePoint)
 					{
 						successesSinceLastThrottle = 0;
 						currentBackoff += (int)options.ThrottlingRequestBackoff.TotalMilliseconds;
@@ -121,15 +125,21 @@ namespace InfinityCrawler.TaskHandlers
 			}
 		}
 
-		private async Task RunAction<TModel>(TModel item, Func<TModel, ConcurrentQueue<TModel>, Task> action, ConcurrentQueue<TModel> itemsToProcess, int delay, Stopwatch timer)
+		private async Task RunAction<TModel>(TModel item, Func<TModel, ConcurrentQueue<TModel>, Task> action, ConcurrentQueue<TModel> itemsToProcess, int delay, TaskContext context)
 		{
 			if (delay > 0)
 			{
 				await Task.Delay(delay);
 			}
-			timer.Start();
+			context.Timer.Start();
 			await action(item, itemsToProcess);
-			timer.Stop();
+			context.Timer.Stop();
+		}
+
+		private class TaskContext
+		{
+			public int TaskNumber { get; set; }
+			public Stopwatch Timer { get; set; }
 		}
 	}
 }
