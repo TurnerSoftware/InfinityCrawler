@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using InfinityCrawler.LinkParser;
+using InfinityCrawler.TaskHandlers;
 
 namespace InfinityCrawler
 {
@@ -13,7 +14,7 @@ namespace InfinityCrawler
 
 		public IContentParser ContentParser { get; set; } = new SimpleContentParser();
 
-		public ParallelAsyncTaskOptions ParallelAsyncTaskOptions { get; set; } = new ParallelAsyncTaskOptions
+		public TaskHandlerOptions TaskHandlerOptions { get; set; } = new TaskHandlerOptions
 		{
 			MaxNumberOfSimultaneousTasks = 10,
 			DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 250),

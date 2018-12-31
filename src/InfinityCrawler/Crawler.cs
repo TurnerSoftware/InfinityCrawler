@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using InfinityCrawler.TaskHandlers;
 using TurnerSoftware.RobotsExclusionTools;
 using TurnerSoftware.SitemapTools;
 
@@ -15,6 +16,7 @@ namespace InfinityCrawler
 	public class Crawler
 	{
 		private HttpClient HttpClient { get; }
+		private ITaskHandler TaskHandler { get; }
 
 		public Crawler()
 		{
@@ -23,11 +25,18 @@ namespace InfinityCrawler
 				AllowAutoRedirect = false,
 				UseCookies = false
 			});
+			TaskHandler = new ParallelAsyncTaskHandler(null);
 		}
 
-		public Crawler(HttpClient httpClient)
+		public Crawler(ITaskHandler taskHandler) : this()
 		{
-			HttpClient = httpClient;
+			TaskHandler = taskHandler ?? throw new ArgumentNullException(nameof(taskHandler));
+		}
+
+		public Crawler(HttpClient httpClient, ITaskHandler taskHandler)
+		{
+			HttpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+			TaskHandler = taskHandler ?? throw new ArgumentNullException(nameof(taskHandler));
 		}
 
 		public async Task<CrawlResult> Crawl(Uri siteUri, CrawlSettings settings)
@@ -56,7 +65,7 @@ namespace InfinityCrawler
 
 			var crawledUris = new ConcurrentDictionary<Uri, CrawledUri>();
 
-			await ParallelAsyncTask.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
+			await TaskHandler.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
 			{
 				if (!CanCrawlUri(crawlState.Location, baseUri, crawledUris, settings))
 				{
@@ -109,7 +118,7 @@ namespace InfinityCrawler
 						Status = CrawlStatus.RobotsBlocked
 					});
 				}
-			}, settings.ParallelAsyncTaskOptions);
+			}, settings.TaskHandlerOptions);
 
 			stopwatch.Stop();
 			result.ElapsedTime = stopwatch.Elapsed;

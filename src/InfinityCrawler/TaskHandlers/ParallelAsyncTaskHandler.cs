@@ -6,15 +6,23 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
-namespace InfinityCrawler
+namespace InfinityCrawler.TaskHandlers
 {
-	public static class ParallelAsyncTask
+	public class ParallelAsyncTaskHandler : ITaskHandler
 	{
-		public static async Task For<TModel>(
+		private ILogger Logger { get; }
+
+		public ParallelAsyncTaskHandler(ILogger logger)
+		{
+			Logger = logger;
+		}
+
+		public async Task For<TModel>(
 			IEnumerable<TModel> items, 
 			Func<TModel, ConcurrentQueue<TModel>, Task> action, 
-			ParallelAsyncTaskOptions options
+			TaskHandlerOptions options
 		)
 		{
 			if (options == null)
@@ -45,16 +53,19 @@ namespace InfinityCrawler
 						}
 
 						taskStartDelay += currentBackoff;
-						
+
 						var timer = new Stopwatch();
 						var task = RunAction(item, action, itemsToProcess, (int)taskStartDelay, timer);
-						
+
+						Logger?.LogDebug($"Task #{task.Id} started with {taskStartDelay}ms delay");
+
 						activeTasks.TryAdd(task, timer);
 						taskCount++;
 
 						//Max task early exit
 						if (options.MaxNumberOfTasks != 0 && taskCount == options.MaxNumberOfTasks)
 						{
+							Logger?.LogInformation($"Maximum number of {options.MaxNumberOfTasks} tasks reached");
 							await Task.WhenAll(activeTasks.Keys);
 							return;
 						}
@@ -72,12 +83,20 @@ namespace InfinityCrawler
 				foreach (var completedTask in completedTasks)
 				{
 					activeTasks.TryRemove(completedTask, out var timer);
-					timer.Stop();
 
-					if (options.BubbleUpExceptions && completedTask.IsFaulted)
+					if (completedTask.IsFaulted)
 					{
-						throw completedTask.Exception;
+						if (options.BubbleUpExceptions)
+						{
+							throw completedTask.Exception;
+						}
+						else
+						{
+							Logger?.LogError(completedTask.Exception, $"Task #{completedTask.Id} has completed in a faulted state");
+						}
 					}
+
+					Logger?.LogDebug($"Task #{completedTask.Id} completed in {timer.ElapsedMilliseconds}ms");
 
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
@@ -85,7 +104,7 @@ namespace InfinityCrawler
 					{
 						successesSinceLastThrottle = 0;
 						currentBackoff += (int)options.ThrottlingRequestBackoff.TotalMilliseconds;
-						Console.WriteLine($"New backoff: {currentBackoff}ms");
+						Logger?.LogInformation($"New backoff of {currentBackoff}ms");
 					}
 					else if (currentBackoff > 0)
 					{
@@ -95,14 +114,14 @@ namespace InfinityCrawler
 							var newBackoff = currentBackoff - options.ThrottlingRequestBackoff.TotalMilliseconds;
 							currentBackoff = Math.Max(0, (int)newBackoff);
 							successesSinceLastThrottle = 0;
-							Console.WriteLine($"New backoff: {currentBackoff}ms");
+							Logger?.LogInformation($"New backoff of {currentBackoff}ms");
 						}
 					}
 				}
 			}
 		}
 
-		private static async Task RunAction<TModel>(TModel item, Func<TModel, ConcurrentQueue<TModel>, Task> action, ConcurrentQueue<TModel> itemsToProcess, int delay, Stopwatch timer)
+		private async Task RunAction<TModel>(TModel item, Func<TModel, ConcurrentQueue<TModel>, Task> action, ConcurrentQueue<TModel> itemsToProcess, int delay, Stopwatch timer)
 		{
 			if (delay > 0)
 			{
@@ -112,41 +131,5 @@ namespace InfinityCrawler
 			await action(item, itemsToProcess);
 			timer.Stop();
 		}
-	}
-
-	public class ParallelAsyncTaskOptions
-	{
-		/// <summary>
-		/// Maximum number of simultaneous asynchronous tasks run at once. Default is 5 tasks.
-		/// </summary>
-		public int MaxNumberOfSimultaneousTasks { get; set; } = 5;
-		/// <summary>
-		/// Delay between one task starting and the next.
-		/// </summary>
-		public TimeSpan DelayBetweenTaskStart { get; set; }
-		/// <summary>
-		///	Maximum jitter applied to a task delay.
-		/// </summary>
-		public TimeSpan DelayJitter { get; set; }
-		/// <summary>
-		/// The task timeout length before throttling sets in. 
-		/// </summary>
-		public TimeSpan TimeoutBeforeThrottle { get; set; }
-		/// <summary>
-		/// The amount of throttling delay to add to subsequent tasks. This is added every time the timeout is hit.
-		/// </summary>
-		public TimeSpan ThrottlingRequestBackoff { get; set; }
-		/// <summary>
-		/// Minimum number of tasks below the timeout before minimising the applied throttling. Default is 5 tasks.
-		/// </summary>
-		public int MinSequentialSuccessesToMinimiseThrottling { get; set; } = 5;
-		/// <summary>
-		/// Maximum number of tasks to run before exiting. Zero means no limit.
-		/// </summary>
-		public int MaxNumberOfTasks { get; set; }
-		/// <summary>
-		/// Bubble up exceptions from faulted tasks.
-		/// </summary>
-		public bool BubbleUpExceptions { get; set; }
 	}
 }
