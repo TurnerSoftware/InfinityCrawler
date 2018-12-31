@@ -17,8 +17,8 @@ namespace InfinityCrawler
 		public TaskHandlerOptions TaskHandlerOptions { get; set; } = new TaskHandlerOptions
 		{
 			MaxNumberOfSimultaneousTasks = 10,
-			DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 250),
-			DelayJitter = new TimeSpan(0, 0, 0, 0, 500),
+			DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 1000),
+			DelayJitter = new TimeSpan(0, 0, 0, 0, 1000),
 			ThrottlingRequestBackoff = new TimeSpan(0, 0, 0, 2),
 			TimeoutBeforeThrottle = new TimeSpan(0, 0, 0, 5),
 			MinSequentialSuccessesToMinimiseThrottling = 5
