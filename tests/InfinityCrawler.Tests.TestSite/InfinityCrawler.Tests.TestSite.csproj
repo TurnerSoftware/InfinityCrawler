@@ -5,15 +5,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Resources\TestSite1\index.html" />
-    <None Remove="Resources\TestSite1\sitemap.xml" />
+    <None Remove="Resources\*\*.*" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Resources\TestSite1\index.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Resources\TestSite1\sitemap.xml">
+    <Content Include="Resources\*\*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
