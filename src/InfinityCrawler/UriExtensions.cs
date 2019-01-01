@@ -8,21 +8,17 @@ namespace InfinityCrawler
 	{
 		public static Uri BuildUriFromHref(this Uri pageUri, string href, string baseHref = null)
 		{
-			if (Uri.IsWellFormedUriString(href, UriKind.Absolute))
+			var baseUri = pageUri;
+
+			if (Uri.IsWellFormedUriString(href, UriKind.RelativeOrAbsolute))
 			{
-				return new Uri(href, UriKind.Absolute);
-			}
-			else if (Uri.IsWellFormedUriString(href, UriKind.Relative))
-			{
-				if (baseHref != null && Uri.IsWellFormedUriString(baseHref, UriKind.Absolute))
+				if (Uri.IsWellFormedUriString(baseHref, UriKind.Absolute))
 				{
 					//Allows <base href=""> to work
-					return new Uri(new Uri(baseHref), href);
+					baseUri = new Uri(baseHref);
 				}
-				else
-				{
-					return new Uri(pageUri, href);
-				}
+
+				return new Uri(pageUri, href);
 			}
 
 			return null;
