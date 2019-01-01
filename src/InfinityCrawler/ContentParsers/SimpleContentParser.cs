@@ -27,6 +27,8 @@ namespace InfinityCrawler.ContentParsers
 
 			var parsedContent = Parse(uri, contentStream);
 
+			crawledContent.CanonicalUri = parsedContent.CanonicalUri;
+
 			if (response.Headers.Contains("X-Robots-Tag"))
 			{
 				var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
