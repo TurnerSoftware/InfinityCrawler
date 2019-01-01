@@ -49,11 +49,11 @@ namespace InfinityCrawler.Tests
 		{
 			var result = await GetCrawlResult();
 			var uri = new Uri("http://localhost/robots-blocked.html");
-			var robotsBlockedResult = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
+			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
 
 			var robotsChildUri = new Uri("http://localhost/robots-blocked-childs.html");
 
-			Assert.AreEqual(CrawlStatus.RobotsBlocked, robotsBlockedResult.Status);
+			Assert.AreEqual(CrawlStatus.RobotsBlocked, crawledUri.Status);
 			Assert.IsFalse(result.CrawledUris.Any(c => c.Location == robotsChildUri));
 		}
 
@@ -80,9 +80,24 @@ namespace InfinityCrawler.Tests
 			var result = await GetCrawlResult();
 			var uris = new[]
 			{
+				new Uri("http://localhost/status/404"),
+				new Uri("http://localhost/status/403"),
 				new Uri("http://localhost/status/401")
 			};
 			Assert.IsTrue(uris.All(uri => result.CrawledUris.Any(c => c.Location == uri && c.Requests.Count == 1)));
+		}
+
+		[TestMethod]
+		public async Task ExternalSitesAreNotCrawled()
+		{
+			var result = await GetCrawlResult();
+			var uri = new Uri("http://localhost/index.html");
+			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
+
+			var externalUri = new Uri("http://www.example.com");
+
+			Assert.IsTrue(crawledUri.Content.Links.Any(l => l.Location == externalUri));
+			Assert.IsFalse(result.CrawledUris.Any(c => c.Location == externalUri));
 		}
 	}
 }
