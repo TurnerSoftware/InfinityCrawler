@@ -2,6 +2,10 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>InfinityCrawler</AssemblyName>
+    <Description>A simple but powerful web crawler library</Description>
+    <PackageTags>$(PackageBaseTags)</PackageTags>
+    <Authors>James Turner</Authors>
   </PropertyGroup>
 
   <ItemGroup>
