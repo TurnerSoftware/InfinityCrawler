@@ -3,6 +3,7 @@ A simple but powerful web crawler library in C#
 
 [![AppVeyor](https://img.shields.io/appveyor/ci/Turnerj/infinitycrawler/master.svg)](https://ci.appveyor.com/project/Turnerj/infinitycrawler)
 [![Codecov](https://img.shields.io/codecov/c/github/turnersoftware/infinitycrawler/master.svg)](https://codecov.io/gh/TurnerSoftware/infinitycrawler)
+[![NuGet](https://img.shields.io/nuget/v/InfinityCrawler.svg)](https://www.nuget.org/packages/InfinityCrawler)
 
 ## Features
 - Obeys robots.txt (crawl delay & allow/disallow)
