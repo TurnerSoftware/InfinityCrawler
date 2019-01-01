@@ -28,7 +28,7 @@ namespace InfinityCrawler.Tests.TestSite.Controllers
 			};
 		}
 
-		[Route("status/{status}")]
+		[Route("status/{statusCode}")]
 		public IActionResult ReturnError(HttpStatusCode statusCode)
 		{
 			return new ContentResult
