@@ -28,6 +28,12 @@ namespace InfinityCrawler.Tests.Benchmarks
 			Crawler = new Crawler(client, new ParallelAsyncTaskHandler());
 		}
 
+		[GlobalSetup]
+		public async Task Setup()
+		{
+			await CrawlSite(); // benchmark warmup as a workaround for https://github.com/dotnet/BenchmarkDotNet/issues/837
+		}
+
 		[Benchmark]
 		public async Task CrawlSite()
 		{
