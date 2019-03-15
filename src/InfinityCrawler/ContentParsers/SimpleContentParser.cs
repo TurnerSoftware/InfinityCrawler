@@ -22,36 +22,38 @@ namespace InfinityCrawler.ContentParsers
 			
 			var contentStream = new MemoryStream();
 			await(await response.Content.ReadAsStreamAsync()).CopyToAsync(contentStream);
-			crawledContent.ContentStream = contentStream;
+			crawledContent.RawContent = new StreamReader(contentStream).ReadToEnd();
 			contentStream.Seek(0, SeekOrigin.Begin);
 
-			var parsedContent = Parse(uri, contentStream);
-
-			crawledContent.CanonicalUri = parsedContent.CanonicalUri;
-
-			if (response.Headers.Contains("X-Robots-Tag"))
+			using (contentStream)
 			{
-				var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
-				parsedContent.NoIndex = robotsHeaderValues.Any(r =>
-					r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1
-				);
-				parsedContent.NoFollow = robotsHeaderValues.Any(r =>
-					r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
-				);
-			}
+				var parsedContent = Parse(uri, contentStream);
 
-			if (parsedContent.NoIndex)
-			{
-				crawledContent.ContentStream = null;
-				contentStream.Dispose();
-			}
+				crawledContent.CanonicalUri = parsedContent.CanonicalUri;
 
-			if (!parsedContent.NoFollow)
-			{
-				crawledContent.Links = parsedContent.Links;
-			}
+				if (response.Headers.Contains("X-Robots-Tag"))
+				{
+					var robotsHeaderValues = response.Headers.GetValues("X-Robots-Tag");
+					parsedContent.NoIndex = robotsHeaderValues.Any(r =>
+						r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1
+					);
+					parsedContent.NoFollow = robotsHeaderValues.Any(r =>
+						r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
+					);
+				}
 
-			return crawledContent;
+				if (parsedContent.NoIndex)
+				{
+					crawledContent.RawContent = null;
+				}
+
+				if (!parsedContent.NoFollow)
+				{
+					crawledContent.Links = parsedContent.Links;
+				}
+
+				return crawledContent;
+			}
 		}
 
 		private ParsedContent Parse(Uri uri, Stream contentStream)
