@@ -1,14 +1,17 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.168
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29001.49
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "global", "global", "{F0B4D082-200A-4DD3-9291-872B7F2A991E}"
 	ProjectSection(SolutionItems) = preProject
 		.appveyor.yml = .appveyor.yml
 		.codecov.yml = .codecov.yml
 		.editorconfig = .editorconfig
-		LICENSE = LICENSE
+		.gitignore = .gitignore
+		build.appveyor.ps1 = build.appveyor.ps1
+		build.ps1 = build.ps1
+		License.txt = License.txt
 		README.md = README.md
 	EndProjectSection
 EndProject
@@ -25,7 +28,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InfinityCrawler.Tests", "te
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InfinityCrawler.Tests.TestSite", "tests\InfinityCrawler.Tests.TestSite\InfinityCrawler.Tests.TestSite.csproj", "{483B6FC9-98E7-4BD4-BA09-80DF504E31B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InfinityCrawler.Tests.Benchmarks", "tests\InfinityCrawler.Tests.Benchmarks\InfinityCrawler.Tests.Benchmarks.csproj", "{F17C5CAC-DF32-434B-A4C5-21CBDDA86B97}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InfinityCrawler.Tests.Benchmarks", "tests\InfinityCrawler.Tests.Benchmarks\InfinityCrawler.Tests.Benchmarks.csproj", "{F17C5CAC-DF32-434B-A4C5-21CBDDA86B97}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

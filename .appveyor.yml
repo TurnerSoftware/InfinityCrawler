@@ -1,29 +1,28 @@
-version: '0.2.0+{build}'
+version: '{build}'
 image: Visual Studio 2017
 skip_branch_with_pr: true
-branches:
-  only:
-    - master
-skip_commits:
-  files:
-  - '**/*.md'
 
-build:
-  verbosity: minimal
 install:
   - choco install opencover codecov
+  - ps: .\build\dotnet-install.ps1 -Version 3.0.100-preview5-011568
 
-
+  
 build_script:
-  - dotnet build -c Release
-  - dotnet pack --no-build -c Release /p:PackageOutputPath=..\..\.nupkgs
-test_script:
-  - OpenCover.Console.exe -register:user -target:"C:\Program Files\dotnet\dotnet.exe" -targetargs:"test tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj /p:DebugType=Full" -filter:"+[InfinityCrawler]* -[InfinityCrawler.Tests]*" -output:".\coverage.xml" -oldstyle
-  - codecov -f coverage.xml
+  - ps: .\build.appveyor.ps1 -IsTagBuild ([System.Convert]::ToBoolean($env:APPVEYOR_REPO_TAG))
 
-
-artifacts:
-  - path: '.nupkgs\*.nupkg'
-
-  - path: coverage.xml
-    name: Coverage Report
+deploy:
+  - provider: NuGet
+    artifact: /.*nupkg/
+    api_key:
+      secure: eCdbkZMnfQfn//yoFtvyHHVUkoIX1yUfs6qRtOGsRxQq95pDPNMUMD0+XN9itbKp
+    on:
+      APPVEYOR_REPO_TAG: true
+  - provider: GitHub
+    artifact: /.*nupkg/
+    draft: true
+    release: $(APPVEYOR_REPO_TAG_NAME)
+    description: 'TODO'
+    auth_token:
+      secure: 8WGv8noklaCJAQEBpcs+VShk/Hql5zbyx0VPhMvzUw0RcG7rAd2KxKIh4gazXlBi
+    on:
+      APPVEYOR_REPO_TAG: true
