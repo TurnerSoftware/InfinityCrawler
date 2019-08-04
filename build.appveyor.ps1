@@ -12,3 +12,5 @@ if ($IsTagBuild) {
 else {
 	.\build.ps1 -CheckCoverage $True
 }
+
+Exit $LastExitCode

@@ -9,6 +9,10 @@ install:
   
 build_script:
   - ps: .\build.appveyor.ps1 -IsTagBuild ([System.Convert]::ToBoolean($env:APPVEYOR_REPO_TAG))
+  
+test: false
+artifacts:
+  - path: '.\build-artifacts\*'
 
 deploy:
   - provider: NuGet
