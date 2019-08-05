@@ -11,7 +11,6 @@ namespace InfinityCrawler.Processing.Requests
 	public interface IRequestProcessor
 	{
 		void Add(Uri requestUri);
-		void AddRange(IEnumerable<Uri> requestUris);
 
 		Task ProcessAsync(
 			HttpClient httpClient,

@@ -26,14 +26,6 @@ namespace InfinityCrawler.Processing.Requests
 			RequestQueue.Enqueue(uri);
 		}
 
-		public void AddRange(IEnumerable<Uri> uris)
-		{
-			foreach (var uri in uris)
-			{
-				RequestQueue.Enqueue(uri);
-			}
-		}
-
 		public async Task ProcessAsync(HttpClient httpClient, Func<RequestResult, Task> responseAction, RequestProcessorOptions options, CancellationToken cancellationToken = default)
 		{
 			if (options == null)
