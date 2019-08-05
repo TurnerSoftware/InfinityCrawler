@@ -35,7 +35,7 @@ if ($RunTests -And -Not $CheckCoverage) {
 }
 elseif ($RunTests -And $CheckCoverage) {
 	Write-Host "Running tests with coverage..." -ForegroundColor "Magenta"
-	OpenCover.Console.exe -register:user -target:"%LocalAppData%\Microsoft\dotnet\dotnet.exe" -targetargs:"test tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj /p:DebugType=Full" -filter:"+[InfinityCrawler]* -[InfinityCrawler.Tests]*" -output:"$packageOutputFolder\coverage.xml" -oldstyle
+	Invoke-Expression ("$env:LOCALAPPDATA\Apps\OpenCover\" + 'OpenCover.Console.exe -register:user -target:"%LocalAppData%\Microsoft\dotnet\dotnet.exe" -targetargs:"test tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj /p:DebugType=Full" -filter:"+[InfinityCrawler]* -[InfinityCrawler.Tests]*" -output:"' + $packageOutputFolder + '\coverage.xml" -oldstyle')
     if ($LastExitCode -ne 0 -Or -Not $?) {
         Write-Host "Failure performing tests with coverage, aborting!" -Foreground "Red"
 		Exit 1
