@@ -90,13 +90,17 @@ namespace InfinityCrawler.Processing.Content
 						continue;
 					}
 
-					yield return new CrawlLink
+					var rel = anchor.GetAttributeValue("rel", null);
+					if (rel == null || !rel.Contains("nofollow"))
 					{
-						Location = anchorLocation,
-						Title = anchor.GetAttributeValue("title", null),
-						Text = anchor.InnerText,
-						Relationship = anchor.GetAttributeValue("rel", null),
-					};
+						yield return new CrawlLink
+						{
+							Location = anchorLocation,
+							Title = anchor.GetAttributeValue("title", null),
+							Text = anchor.InnerText,
+							Relationship = anchor.GetAttributeValue("rel", null),
+						};
+					}
 				}
 			}
 		}
