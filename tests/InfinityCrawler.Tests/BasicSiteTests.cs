@@ -102,5 +102,16 @@ namespace InfinityCrawler.Tests
 			Assert.IsTrue(crawledUri.Content.Links.Any(l => l.Location == externalUri));
 			Assert.IsFalse(result.CrawledUris.Any(c => c.Location == externalUri));
 		}
+
+		[TestMethod]
+		public async Task MaximumRedirectLimitFollowed()
+		{
+			var result = await GetCrawlResult();
+			var uri = new Uri("http://localhost/redirect/5/five-redirects");
+			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
+
+			Assert.AreEqual(CrawlStatus.MaxRedirects, crawledUri.Status);
+			Assert.AreEqual(3, crawledUri.RedirectChain.Count);
+		}
 	}
 }
