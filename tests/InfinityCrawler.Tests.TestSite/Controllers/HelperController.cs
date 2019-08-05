@@ -38,7 +38,7 @@ namespace InfinityCrawler.Tests.TestSite.Controllers
 			};
 		}
 
-		[Route("redirect/{depth}/{identifier}")]
+		[Route("redirect/{depth}/{path}")]
 		public IActionResult Redirect(int depth, string path)
 		{
 			if (depth <= 0)

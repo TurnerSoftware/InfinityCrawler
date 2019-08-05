@@ -28,7 +28,7 @@ namespace InfinityCrawler.Tests.TestSite
 					Path.Combine(Directory.GetCurrentDirectory(), $"Resources/{Context.SiteFolder}"))
 			});
 
-			app.UseMvcWithDefaultRoute();
+			app.UseMvc();
 		}
 	}
 }
