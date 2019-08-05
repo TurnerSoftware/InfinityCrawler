@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
-using InfinityCrawler.TaskHandlers;
+using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 
 namespace InfinityCrawler.Tests.Benchmarks
@@ -25,7 +25,7 @@ namespace InfinityCrawler.Tests.Benchmarks
 			});
 
 			var client = TestSite.GetHttpClient();
-			Crawler = new Crawler(client, new ParallelAsyncTaskHandler());
+			Crawler = new Crawler(client);
 		}
 
 		[GlobalSetup]
@@ -39,10 +39,10 @@ namespace InfinityCrawler.Tests.Benchmarks
 		{
 			var result = await Crawler.Crawl(Uri, new CrawlSettings
 			{
-				TaskHandlerOptions = new TaskHandlerOptions
+				RequestProcessorOptions = new RequestProcessorOptions
 				{
-					MaxNumberOfSimultaneousTasks = 5,
-					DelayBetweenTaskStart = new TimeSpan(),
+					MaxNumberOfSimultaneousRequests = 5,
+					DelayBetweenRequestStart = new TimeSpan(),
 					DelayJitter = new TimeSpan(),
 					TimeoutBeforeThrottle = new TimeSpan()
 				}

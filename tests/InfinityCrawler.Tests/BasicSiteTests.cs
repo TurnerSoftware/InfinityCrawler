@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using InfinityCrawler.TaskHandlers;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -16,7 +15,11 @@ namespace InfinityCrawler.Tests
 			{
 				SiteFolder = "BasicSite"
 			});
-			var settings = GetFastCrawlTestSettings();
+			var settings = new CrawlSettings
+			{
+				RequestProcessor = GetLoggedRequestProcessor(),
+				RequestProcessorOptions = GetNoDelayRequestProcessorOptions()
+			};
 			return await crawler.Crawl(new Uri("http://localhost/"), settings);
 		}
 

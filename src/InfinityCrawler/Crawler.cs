@@ -1,4 +1,5 @@
-﻿using System;
+﻿using InfinityCrawler.Internal;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,8 +7,9 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
-using InfinityCrawler.TaskHandlers;
+using InfinityCrawler.Processing.Requests;
 using TurnerSoftware.RobotsExclusionTools;
 using TurnerSoftware.SitemapTools;
 
@@ -16,7 +18,6 @@ namespace InfinityCrawler
 	public class Crawler
 	{
 		private HttpClient HttpClient { get; }
-		private ITaskHandler TaskHandler { get; }
 
 		public Crawler()
 		{
@@ -25,18 +26,11 @@ namespace InfinityCrawler
 				AllowAutoRedirect = false,
 				UseCookies = false
 			});
-			TaskHandler = new ParallelAsyncTaskHandler(null);
 		}
 
-		public Crawler(ITaskHandler taskHandler) : this()
-		{
-			TaskHandler = taskHandler ?? throw new ArgumentNullException(nameof(taskHandler));
-		}
-
-		public Crawler(HttpClient httpClient, ITaskHandler taskHandler)
+		public Crawler(HttpClient httpClient)
 		{
 			HttpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-			TaskHandler = taskHandler ?? throw new ArgumentNullException(nameof(taskHandler));
 		}
 
 		public async Task<CrawlResult> Crawl(Uri siteUri, CrawlSettings settings)
@@ -45,150 +39,36 @@ namespace InfinityCrawler
 			{
 				CrawlStart = DateTime.UtcNow
 			};
-			var stopwatch = new Stopwatch();
-			stopwatch.Start();
+			var overallCrawlStopwatch = new Stopwatch();
+			overallCrawlStopwatch.Start();
 
 			var baseUri = new Uri(siteUri.GetLeftPart(UriPartial.Authority));
 			var robotsFile = await new RobotsParser(HttpClient).FromUriAsync(baseUri);
 
-			//Apply Robots.txt crawl-delay (if defined)
-			var userAgentEntry = robotsFile.GetEntryForUserAgent(settings.UserAgent);
-			var minimumCrawlDelay = userAgentEntry?.CrawlDelay ?? 0;
-			var taskDelay = Math.Max(minimumCrawlDelay * 1000, settings.TaskHandlerOptions.DelayBetweenTaskStart.TotalMilliseconds);
-			settings.TaskHandlerOptions.DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, (int)taskDelay);
+			UpdateCrawlDelay(robotsFile, settings.UserAgent, settings.RequestProcessorOptions);
 
-			var seedUris = new List<UriCrawlState>
-			{
-				new UriCrawlState { Location = baseUri }
-			};
+			var crawlRunner = new CrawlRunner(baseUri, robotsFile, HttpClient, settings);
 
 			//Use any links referred to by the sitemap as a starting point
-			seedUris.AddRange((await new SitemapQuery(HttpClient)
+			var urisFromSitemap = (await new SitemapQuery(HttpClient)
 				.GetAllSitemapsForDomain(siteUri.Host))
-				.SelectMany(s => s.Urls.Select(u => new UriCrawlState { Location = u.Location }))
-				.Distinct()
-			);
-
-			var crawlContext = new CrawlContext
+				.SelectMany(s => s.Urls.Select(u => u.Location).Distinct());
+			foreach (var uri in urisFromSitemap)
 			{
-				Settings = settings
-			};
-
-			await TaskHandler.For(seedUris.Distinct().ToArray(), async (crawlState, pagesToCrawl) =>
-			{
-				if (!CheckUriValidity(crawlState.Location, baseUri, crawlContext))
-				{
-					return;
-				}
-
-				if (crawlContext.CrawledUris.ContainsKey(crawlState.Location))
-				{
-					return;
-				}
-
-				crawlContext.SeenUris.TryAdd(crawlState.Location, 0);
-
-				var lastRequest = crawlState.Requests.LastOrDefault();
-				if (lastRequest != null && lastRequest.IsSuccessfulStatus)
-				{
-					return;
-				}
-				else if (crawlState.Requests.Count() == settings.NumberOfRetries)
-				{
-					crawlContext.CrawledUris.TryAdd(crawlState.Location, new CrawledUri
-					{
-						Location = crawlState.Location,
-						Status = CrawlStatus.MaxRetries,
-						Requests = crawlState.Requests,
-						RedirectChain = crawlState.Redirects
-					});
-				}
-				else if (robotsFile.IsAllowedAccess(crawlState.Location, settings.UserAgent))
-				{
-					var crawledUri = await PerformRequest(crawlState, pagesToCrawl, crawlContext);
-					if (crawledUri != null)
-					{
-						crawlContext.CrawledUris.TryAdd(crawlState.Location, crawledUri);
-
-						if (crawledUri.Content?.Links?.Any() == true)
-						{
-							foreach (var crawlLink in crawledUri.Content.Links)
-							{
-								if (CheckUriValidity(crawlLink.Location, baseUri, crawlContext))
-								{
-									if (crawlContext.SeenUris.ContainsKey(crawlLink.Location))
-									{
-										continue;
-									}
-
-									crawlContext.SeenUris.TryAdd(crawlLink.Location, 0);
-									pagesToCrawl.Enqueue(new UriCrawlState
-									{
-										Location = crawlLink.Location
-									});
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					crawlContext.CrawledUris.TryAdd(crawlState.Location, new CrawledUri
-					{
-						Location = crawlState.Location,
-						Status = CrawlStatus.RobotsBlocked
-					});
-				}
-			}, settings.TaskHandlerOptions);
-
-			stopwatch.Stop();
-			result.ElapsedTime = stopwatch.Elapsed;
-			result.CrawledUris = crawlContext.CrawledUris.Values;
-			return result;
-		}
-
-		private bool CheckUriValidity(Uri uriToCheck, Uri baseUri, CrawlContext context)
-		{
-			if (
-				context.Settings.HostAliases != null &&
-				!(
-					uriToCheck.Host == baseUri.Host ||
-					context.Settings.HostAliases.Contains(uriToCheck.Host)
-				)
-			)
-			{
-				//Current host is not in the list of allowed hosts or matches base host
-				return false;
-			}
-			else if (uriToCheck.Host != baseUri.Host)
-			{
-				//Current host doesn't match base host
-				return false;
+				crawlRunner.AddRequest(uri);
 			}
 
-			return true;
-		}
-
-		private async Task<CrawledUri> PerformRequest(UriCrawlState crawlState, ConcurrentQueue<UriCrawlState> pagesToCrawl, CrawlContext context)
-		{
-			var crawlRequest = new CrawlRequest
+			result.CrawledUris = await crawlRunner.ProcessAsync(async (requestResult, crawlState) =>
 			{
-				RequestStart = DateTime.UtcNow,
-			};
+				var response = requestResult.ResponseMessage;
 
-			var stopwatch = new Stopwatch();
-			stopwatch.Start();
-
-			using (var response = await HttpClient.GetAsync(crawlState.Location))
-			{
-				crawlRequest.StatusCode = response.StatusCode;
-				crawlRequest.IsSuccessfulStatus = response.IsSuccessStatusCode;
-				
-				await response.Content.LoadIntoBufferAsync();
-
-				stopwatch.Stop();
-				crawlRequest.ElapsedTime = stopwatch.Elapsed;
-
+				var crawlRequest = new CrawlRequest
+				{
+					RequestStart = requestResult.RequestStart,
+					ElapsedTime = requestResult.ElapsedTime,
+					StatusCode = response.StatusCode,
+					IsSuccessfulStatus = response.IsSuccessStatusCode
+				};
 				crawlState.Requests.Add(crawlRequest);
 
 				var redirectStatusCodes = new[]
@@ -197,63 +77,68 @@ namespace InfinityCrawler
 					HttpStatusCode.Redirect,
 					HttpStatusCode.TemporaryRedirect
 				};
-
 				if (redirectStatusCodes.Contains(crawlRequest.StatusCode))
 				{
-					var headerLocation = response.Headers.Location;
-					var redirectCrawlState = new UriCrawlState
-					{
-						Location = new Uri(crawlState.Location, headerLocation.ToString()),
-						Redirects = crawlState.Redirects ?? new List<CrawledUriRedirect>()
-					};
-
-					redirectCrawlState.Redirects.Add(new CrawledUriRedirect
-					{
-						Location = crawlState.Location,
-						Requests = crawlState.Requests
-					});
-
-					pagesToCrawl.Enqueue(redirectCrawlState);
-					context.SeenUris.TryAdd(headerLocation, 0);
-					return null;
+					crawlRunner.AddRedirect(crawlState.Location, response.Headers.Location);
 				}
 				else if (crawlRequest.IsSuccessfulStatus)
 				{
-					return new CrawledUri
+					var contentStream = await response.Content.ReadAsStreamAsync();
+					var content = settings.ContentProcessor.Parse(crawlState.Location, response.Content.Headers, contentStream);
+
+					//Consider the URI skipped if the content parser returns null
+					if (content != null)
 					{
-						Location = crawlState.Location,
-						Status = CrawlStatus.Crawled,
-						RedirectChain = crawlState.Redirects,
-						Requests = crawlState.Requests,
-						Content = await context.Settings.ContentParser.Parse(crawlState.Location, response, context.Settings)
-					};
+						crawlRunner.AddResult(new CrawledUri
+						{
+							Location = crawlState.Location,
+							Status = CrawlStatus.Crawled,
+							RedirectChain = crawlState.Redirects,
+							Requests = crawlState.Requests,
+							Content = content
+						});
+
+						if (content.Links.Any() == true)
+						{
+							foreach (var crawlLink in content.Links)
+							{
+								crawlRunner.AddLink(crawlLink);
+							}
+						}
+					}
 				}
 				else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
 				{
 					//On server errors, try to crawl the page again later
-					pagesToCrawl.Enqueue(crawlState);
-					return null;
+					crawlRunner.AddRequest(crawlState.Location);
 				}
 				else
 				{
 					//On any other error, just save what we have seen and move on
 					//Consider the content of the request irrelevant
-					return new CrawledUri
+
+					crawlRunner.AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
 						Status = CrawlStatus.Crawled,
 						RedirectChain = crawlState.Redirects,
 						Requests = crawlState.Requests
-					};
+					});
 				}
-			}
+			});
+
+			overallCrawlStopwatch.Stop();
+			result.ElapsedTime = overallCrawlStopwatch.Elapsed;
+			return result;
 		}
 
-		private class CrawlContext
+		private void UpdateCrawlDelay(RobotsFile robotsFile, string userAgent, RequestProcessorOptions requestProcessorOptions)
 		{
-			public CrawlSettings Settings { get; set; }
-			public ConcurrentDictionary<Uri, CrawledUri> CrawledUris { get; } = new ConcurrentDictionary<Uri, CrawledUri>();
-			public ConcurrentDictionary<Uri, byte> SeenUris { get; } = new ConcurrentDictionary<Uri, byte>();
+			//Apply Robots.txt crawl-delay (if defined)
+			var userAgentEntry = robotsFile.GetEntryForUserAgent(userAgent);
+			var minimumCrawlDelay = userAgentEntry?.CrawlDelay ?? 0;
+			var taskDelay = Math.Max(minimumCrawlDelay * 1000, requestProcessorOptions.DelayBetweenRequestStart.TotalMilliseconds);
+			requestProcessorOptions.DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, (int)taskDelay);
 		}
 	}
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using InfinityCrawler.TaskHandlers;
+using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -34,12 +34,6 @@ namespace InfinityCrawler.Tests
 			return LoggerFactory.CreateLogger<T>();
 		}
 
-		protected ITaskHandler GetDefaultTaskHandler()
-		{
-			var taskHandlerLogger = GetLogger<ParallelAsyncTaskHandler>();
-			return new ParallelAsyncTaskHandler(taskHandlerLogger);
-		}
-
 		protected Crawler GetTestSiteCrawler(SiteContext context)
 		{
 			if (TestSite != null)
@@ -49,7 +43,7 @@ namespace InfinityCrawler.Tests
 
 			TestSite = new TestSiteManager(context);
 			var client = TestSite.GetHttpClient();
-			return new Crawler(client, GetDefaultTaskHandler());
+			return new Crawler(client);
 		}
 
 		[TestCleanup]
@@ -58,20 +52,21 @@ namespace InfinityCrawler.Tests
 			TestSite?.Dispose();
 		}
 
-		protected CrawlSettings GetTestSettings()
+		protected RequestProcessorOptions GetNoDelayRequestProcessorOptions()
 		{
-			var settings = new CrawlSettings();
-			settings.TaskHandlerOptions.BubbleUpExceptions = true;
-			return settings;
+			return new RequestProcessorOptions
+			{
+				MaxNumberOfSimultaneousRequests = 5,
+				DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, 100),
+				DelayJitter = new TimeSpan(),
+				TimeoutBeforeThrottle = new TimeSpan()
+			};
 		}
 
-		protected CrawlSettings GetFastCrawlTestSettings()
+		protected DefaultRequestProcessor GetLoggedRequestProcessor()
 		{
-			var settings = GetTestSettings();
-			settings.TaskHandlerOptions.DelayBetweenTaskStart = new TimeSpan(0, 0, 0, 0, 100);
-			settings.TaskHandlerOptions.DelayJitter = new TimeSpan();
-			settings.TaskHandlerOptions.TimeoutBeforeThrottle = new TimeSpan();
-			return settings;
+			var requestProcessorLogger = GetLogger<DefaultRequestProcessor>();
+			return new DefaultRequestProcessor(requestProcessorLogger);
 		}
 	}
 }
