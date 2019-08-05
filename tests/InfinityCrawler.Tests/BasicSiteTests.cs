@@ -107,7 +107,7 @@ namespace InfinityCrawler.Tests
 		public async Task MaximumRedirectLimitFollowed()
 		{
 			var result = await GetCrawlResult();
-			var uri = new Uri("http://localhost/redirect/5/five-redirects");
+			var uri = new Uri("http://localhost/redirect/2/five-redirects");
 			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
 
 			Assert.AreEqual(CrawlStatus.MaxRedirects, crawledUri.Status);
