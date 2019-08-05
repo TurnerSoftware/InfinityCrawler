@@ -105,6 +105,7 @@ namespace InfinityCrawler.Internal
 						RedirectChain = crawlState.Redirects,
 						Status = CrawlStatus.MaxRedirects
 					});
+					return;
 				}
 			}
 
