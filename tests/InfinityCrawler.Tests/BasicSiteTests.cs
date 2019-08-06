@@ -11,12 +11,10 @@ namespace InfinityCrawler.Tests
 	{
 		private async Task<CrawlResult> GetCrawlResult()
 		{
-			InitialiseTestSite(new SiteContext
+			var crawler = GetTestSiteCrawler(new SiteContext
 			{
 				SiteFolder = "BasicSite"
 			});
-			
-			var crawler = GetTestSiteCrawler();
 			var settings = new CrawlSettings
 			{
 				RequestProcessor = GetLoggedRequestProcessor(),

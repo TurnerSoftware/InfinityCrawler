@@ -14,17 +14,15 @@ namespace InfinityCrawler.Tests
 	{
 		private async Task<CrawledContent> PerformRequestAsync(string path)
 		{
-			InitialiseTestSite(new SiteContext
-			{
-				SiteFolder = "DefaultContentProcessor"
-			});
-
 			var requestUri = new UriBuilder("http://localhost/")
 			{
 				Path = path
 			}.Uri;
 
-			return await RequestAndProcessContentAsync(requestUri, new DefaultContentProcessor());
+			return await RequestAndProcessContentAsync(new SiteContext
+			{
+				SiteFolder = "DefaultContentProcessor"
+			}, requestUri, new DefaultContentProcessor());
 		}
 
 		[TestMethod]

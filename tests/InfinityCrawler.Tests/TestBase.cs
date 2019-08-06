@@ -12,7 +12,6 @@ namespace InfinityCrawler.Tests
 	[TestClass]
 	public class TestBase
 	{
-		protected TestSiteManager TestSite { get; private set; }
 		private ILoggerFactory LoggerFactory { get; }
 
 		public TestBase()
@@ -32,20 +31,6 @@ namespace InfinityCrawler.Tests
 		protected ILogger<T> GetLogger<T>()
 		{
 			return LoggerFactory.CreateLogger<T>();
-		}
-
-		protected void InitialiseTestSite(SiteContext context)
-		{
-			if (TestSite == null)
-			{
-				TestSite = new TestSiteManager(context);
-			}
-		}
-
-		[TestCleanup]
-		public void TestCleanup()
-		{
-			TestSite?.Dispose();
 		}
 	}
 }

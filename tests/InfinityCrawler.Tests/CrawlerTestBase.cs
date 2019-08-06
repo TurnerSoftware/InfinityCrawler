@@ -4,27 +4,23 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using InfinityCrawler.Processing.Requests;
+using InfinityCrawler.Tests.TestSite;
 
 namespace InfinityCrawler.Tests
 {
 	public class CrawlerTestBase : TestBase
 	{
-		protected Crawler GetTestSiteCrawler()
+		protected Crawler GetTestSiteCrawler(SiteContext siteContext)
 		{
-			if (TestSite == null)
-			{
-				throw new InvalidOperationException("Test site is not initialised!");
-			}
-
-			var client = TestSite.GetHttpClient();
-			return new Crawler(client);
+			var httpClient = TestSiteConfiguration.GetHttpClient(siteContext);
+			return new Crawler(httpClient);
 		}
 
 		protected RequestProcessorOptions GetNoDelayRequestProcessorOptions()
 		{
 			return new RequestProcessorOptions
 			{
-				MaxNumberOfSimultaneousRequests = 5,
+				MaxNumberOfSimultaneousRequests = 10,
 				DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, 100),
 				DelayJitter = new TimeSpan(),
 				TimeoutBeforeThrottle = new TimeSpan()
