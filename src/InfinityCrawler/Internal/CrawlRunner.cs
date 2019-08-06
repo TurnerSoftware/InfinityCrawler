@@ -35,6 +35,11 @@ namespace InfinityCrawler.Internal
 
 		public void AddLink(CrawlLink crawlLink)
 		{
+			if (crawlLink.Relationship.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase))
+			{
+				return;
+			}
+
 			if (SeenUris.ContainsKey(crawlLink.Location))
 			{
 				return;
@@ -63,15 +68,63 @@ namespace InfinityCrawler.Internal
 			}
 		}
 
-		public void AddResult(CrawledUri crawledUri)
+		public void AddResult(Uri requestUri, CrawledContent content)
 		{
-			CrawledUris.Add(crawledUri);
+			if (UriCrawlStates.TryGetValue(requestUri, out var crawlState))
+			{
+				if (content != null)
+				{
+					//TODO: PageRobotRules should be run through the RobotsParser
+					var noIndex = content.PageRobotRules.Any(s => s.Equals("noindex", StringComparison.InvariantCultureIgnoreCase));
+					if (noIndex)
+					{
+						CrawledUris.Add(new CrawledUri
+						{
+							Location = crawlState.Location,
+							Status = CrawlStatus.RobotsBlocked,
+							Requests = crawlState.Requests,
+							RedirectChain = crawlState.Redirects
+						});
+						return;
+					}
+
+					var noFollow = content.PageRobotRules.Any(s => s.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase));
+					if (!noFollow)
+					{
+						foreach (var crawlLink in content.Links)
+						{
+							AddLink(crawlLink);
+						}
+					}
+				}
+
+				CrawledUris.Add(new CrawledUri
+				{
+					Location = crawlState.Location,
+					Status = CrawlStatus.Crawled,
+					RedirectChain = crawlState.Redirects,
+					Requests = crawlState.Requests,
+					Content = content
+				});
+			}
 		}
 
 		public void AddRequest(Uri requestUri)
 		{
-			if (!CheckUriValidity(requestUri))
+			if (
+				Settings.HostAliases != null &&
+				!(
+					requestUri.Host == BaseUri.Host ||
+					Settings.HostAliases.Contains(requestUri.Host)
+				)
+			)
 			{
+				//Current host is not in the list of allowed hosts or matches base host
+				return;
+			}
+			else if (requestUri.Host != BaseUri.Host)
+			{
+				//Current host doesn't match base host
 				return;
 			}
 
@@ -87,7 +140,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Requests.Count() == Settings.NumberOfRetries)
 				{
-					AddResult(new CrawledUri
+					CrawledUris.Add(new CrawledUri
 					{
 						Location = crawlState.Location,
 						Status = CrawlStatus.MaxRetries,
@@ -99,7 +152,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Redirects != null && crawlState.Redirects.Count == Settings.MaxNumberOfRedirects)
 				{
-					AddResult(new CrawledUri
+					CrawledUris.Add(new CrawledUri
 					{
 						Location = crawlState.Location,
 						RedirectChain = crawlState.Redirects,
@@ -115,34 +168,12 @@ namespace InfinityCrawler.Internal
 			}
 			else
 			{
-				AddResult(new CrawledUri
+				CrawledUris.Add(new CrawledUri
 				{
 					Location = requestUri,
 					Status = CrawlStatus.RobotsBlocked
 				});
 			}
-		}
-
-		private bool CheckUriValidity(Uri uriToCheck)
-		{
-			if (
-				Settings.HostAliases != null &&
-				!(
-					uriToCheck.Host == BaseUri.Host ||
-					Settings.HostAliases.Contains(uriToCheck.Host)
-				)
-			)
-			{
-				//Current host is not in the list of allowed hosts or matches base host
-				return false;
-			}
-			else if (uriToCheck.Host != BaseUri.Host)
-			{
-				//Current host doesn't match base host
-				return false;
-			}
-
-			return true;
 		}
 
 		public async Task<IEnumerable<CrawledUri>> ProcessAsync(

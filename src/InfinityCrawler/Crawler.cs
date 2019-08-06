@@ -83,28 +83,12 @@ namespace InfinityCrawler
 				}
 				else if (crawlRequest.IsSuccessfulStatus)
 				{
-					var contentStream = await response.Content.ReadAsStreamAsync();
-					var content = settings.ContentProcessor.Parse(crawlState.Location, response.Content.Headers, contentStream);
-
-					//Consider the URI skipped if the content parser returns null
-					if (content != null)
+					using (var contentStream = await response.Content.ReadAsStreamAsync())
 					{
-						crawlRunner.AddResult(new CrawledUri
-						{
-							Location = crawlState.Location,
-							Status = CrawlStatus.Crawled,
-							RedirectChain = crawlState.Redirects,
-							Requests = crawlState.Requests,
-							Content = content
-						});
-
-						if (content.Links.Any() == true)
-						{
-							foreach (var crawlLink in content.Links)
-							{
-								crawlRunner.AddLink(crawlLink);
-							}
-						}
+						var content = settings.ContentProcessor.Parse(crawlState.Location, response.Content.Headers, contentStream);
+						contentStream.Seek(0, SeekOrigin.Begin);
+						content.RawContent = await new StreamReader(contentStream).ReadToEndAsync();
+						crawlRunner.AddResult(crawlState.Location, content);
 					}
 				}
 				else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
@@ -116,14 +100,7 @@ namespace InfinityCrawler
 				{
 					//On any other error, just save what we have seen and move on
 					//Consider the content of the request irrelevant
-
-					crawlRunner.AddResult(new CrawledUri
-					{
-						Location = crawlState.Location,
-						Status = CrawlStatus.Crawled,
-						RedirectChain = crawlState.Redirects,
-						Requests = crawlState.Requests
-					});
+					crawlRunner.AddResult(crawlState.Location, null);
 				}
 			});
 

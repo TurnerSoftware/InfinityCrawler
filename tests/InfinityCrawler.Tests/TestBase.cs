@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using InfinityCrawler.Processing.Content;
 using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +14,7 @@ namespace InfinityCrawler.Tests
 	[TestClass]
 	public class TestBase
 	{
-		private TestSiteManager TestSite { get; set; }
+		protected TestSiteManager TestSite { get; private set; }
 		private ILoggerFactory LoggerFactory { get; }
 
 		public TestBase()
@@ -34,39 +36,18 @@ namespace InfinityCrawler.Tests
 			return LoggerFactory.CreateLogger<T>();
 		}
 
-		protected Crawler GetTestSiteCrawler(SiteContext context)
+		protected void InitialiseTestSite(SiteContext context)
 		{
-			if (TestSite != null)
+			if (TestSite == null)
 			{
-				throw new InvalidOperationException("Test site already active - use the crawler previously created");
+				TestSite = new TestSiteManager(context);
 			}
-
-			TestSite = new TestSiteManager(context);
-			var client = TestSite.GetHttpClient();
-			return new Crawler(client);
 		}
 
 		[TestCleanup]
 		public void TestCleanup()
 		{
 			TestSite?.Dispose();
-		}
-
-		protected RequestProcessorOptions GetNoDelayRequestProcessorOptions()
-		{
-			return new RequestProcessorOptions
-			{
-				MaxNumberOfSimultaneousRequests = 5,
-				DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, 100),
-				DelayJitter = new TimeSpan(),
-				TimeoutBeforeThrottle = new TimeSpan()
-			};
-		}
-
-		protected DefaultRequestProcessor GetLoggedRequestProcessor()
-		{
-			var requestProcessorLogger = GetLogger<DefaultRequestProcessor>();
-			return new DefaultRequestProcessor(requestProcessorLogger);
 		}
 	}
 }

@@ -46,6 +46,8 @@ namespace InfinityCrawler
 		public string ContentType { get; set; }
 		public string CharacterSet { get; set; }
 		public string ContentEncoding { get; set; }
+		
+		public IEnumerable<string> PageRobotRules { get; set; }
 
 		public string RawContent { get; set; }
 		

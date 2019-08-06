@@ -20,46 +20,30 @@ namespace InfinityCrawler.Processing.Content
 				ContentEncoding = string.Join(",", headers.ContentEncoding)
 			};
 
-			var noFollow = false;
+			var document = new HtmlDocument();
+			document.Load(contentStream);
+			
+			var pageRobotRules = new List<string>();
 			if (headers.Contains("X-Robots-Tag"))
 			{
 				var robotsHeaderValues = headers.GetValues("X-Robots-Tag");
-				var noIndex = robotsHeaderValues.Any(r => r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1);
-
-				if (noIndex)
-				{
-					return null;
-				}
-
-				noFollow = robotsHeaderValues.Any(r =>
-					r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
-				);
+				pageRobotRules.AddRange(robotsHeaderValues);
 			}
-
-			var document = new HtmlDocument();
-			document.Load(contentStream);
-
-			crawledContent.Links = GetLinks(document, requestUri).ToArray();
 
 			var robotsMetaNode = document.DocumentNode.SelectSingleNode("html/head/meta[@name=\"ROBOTS\"]");
 			if (robotsMetaNode != null)
 			{
 				var robotsMetaContent = robotsMetaNode.GetAttributeValue("content", null);
-
-				var noIndex = robotsMetaContent.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1;
-				if (noIndex)
+				if (robotsMetaContent != null)
 				{
-					return null;
-				}
-
-				noFollow = noFollow || robotsMetaContent.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1;
-				if (!noFollow)
-				{
-					crawledContent.Links = Enumerable.Empty<CrawlLink>();
+					pageRobotRules.Add(robotsMetaContent);
 				}
 			}
 
+			crawledContent.PageRobotRules = pageRobotRules;
 			crawledContent.CanonicalUri = GetCanonicalUri(document);
+			crawledContent.Links = GetLinks(document, requestUri).ToArray();
+
 			return crawledContent;
 		}
 
@@ -90,17 +74,13 @@ namespace InfinityCrawler.Processing.Content
 						continue;
 					}
 
-					var rel = anchor.GetAttributeValue("rel", null);
-					if (rel == null || !rel.Contains("nofollow"))
+					yield return new CrawlLink
 					{
-						yield return new CrawlLink
-						{
-							Location = anchorLocation,
-							Title = anchor.GetAttributeValue("title", null),
-							Text = anchor.InnerText,
-							Relationship = anchor.GetAttributeValue("rel", null),
-						};
-					}
+						Location = anchorLocation,
+						Title = anchor.GetAttributeValue("title", null),
+						Text = anchor.InnerText,
+						Relationship = anchor.GetAttributeValue("rel", null),
+					};
 				}
 			}
 		}

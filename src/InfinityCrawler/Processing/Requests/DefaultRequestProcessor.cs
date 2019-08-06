@@ -127,20 +127,23 @@ namespace InfinityCrawler.Processing.Requests
 			}
 
 			var requestStart = DateTime.UtcNow;
-
-			//We only want to time the request, not the handling of the response
 			context.Timer.Start();
-			var response = await httpClient.GetAsync(requestUri);
-			await response.Content.LoadIntoBufferAsync();
-			context.Timer.Stop();
 
-			await responseAction(new RequestResult
+			using (var response = await httpClient.GetAsync(requestUri))
 			{
-				RequestUri = requestUri,
-				RequestStart = requestStart,
-				ResponseMessage = response,
-				ElapsedTime = context.Timer.Elapsed
-			});
+				await response.Content.LoadIntoBufferAsync();
+
+				//We only want to time the request, not the handling of the response
+				context.Timer.Stop();
+
+				await responseAction(new RequestResult
+				{
+					RequestUri = requestUri,
+					RequestStart = requestStart,
+					ResponseMessage = response,
+					ElapsedTime = context.Timer.Elapsed
+				});
+			}
 		}
 
 		private class RequestContext

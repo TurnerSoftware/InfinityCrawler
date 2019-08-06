@@ -7,14 +7,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace InfinityCrawler.Tests
 {
 	[TestClass]
-	public class BasicSiteTests : TestBase
+	public class BasicSiteTests : CrawlerTestBase
 	{
 		private async Task<CrawlResult> GetCrawlResult()
 		{
-			var crawler = GetTestSiteCrawler(new SiteContext
+			InitialiseTestSite(new SiteContext
 			{
 				SiteFolder = "BasicSite"
 			});
+			
+			var crawler = GetTestSiteCrawler();
 			var settings = new CrawlSettings
 			{
 				RequestProcessor = GetLoggedRequestProcessor(),
