@@ -35,7 +35,7 @@ namespace InfinityCrawler.Internal
 
 		public void AddLink(CrawlLink crawlLink)
 		{
-			if (crawlLink.Relationship.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase))
+			if (crawlLink.Relationship != null && crawlLink.Relationship.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase))
 			{
 				return;
 			}
