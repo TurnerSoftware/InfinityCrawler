@@ -94,7 +94,7 @@ namespace InfinityCrawler.Processing.Requests
 						throw completedRequest.Exception;
 					}
 
-					Logger?.LogDebug($"Task #{requestContext.RequestNumber} completed in {requestContext.Timer.ElapsedMilliseconds}ms");
+					Logger?.LogDebug($"Request #{requestContext.RequestNumber} completed in {requestContext.Timer.ElapsedMilliseconds}ms");
 
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
