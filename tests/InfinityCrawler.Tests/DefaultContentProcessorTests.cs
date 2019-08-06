@@ -81,7 +81,7 @@ namespace InfinityCrawler.Tests
 
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r =>
 				r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1 &&
-				r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1 &&
+				r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
 			));
 		}
 		[TestMethod]
