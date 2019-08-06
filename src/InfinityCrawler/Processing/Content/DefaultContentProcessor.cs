@@ -31,13 +31,17 @@ namespace InfinityCrawler.Processing.Content
 				pageRobotRules.AddRange(robotsHeaderValues);
 			}
 
-			var robotsMetaValue = document.DocumentNode.SelectNodes("html/head/meta")
-				.Where(n => n.Attributes.Any(a => a.Name == "name" && a.Value.Equals("robots", StringComparison.InvariantCultureIgnoreCase)))
-				.SelectMany(n => n.Attributes.Where(a => a.Name == "content").Select(a => a.Value))
-				.FirstOrDefault();
-			if (robotsMetaValue != null)
+			var metaNodes = document.DocumentNode.SelectNodes("html/head/meta");
+			if (metaNodes != null)
 			{
-				pageRobotRules.Add(robotsMetaValue);
+				var robotsMetaValue = metaNodes
+					.Where(n => n.Attributes.Any(a => a.Name == "name" && a.Value.Equals("robots", StringComparison.InvariantCultureIgnoreCase)))
+					.SelectMany(n => n.Attributes.Where(a => a.Name == "content").Select(a => a.Value))
+					.FirstOrDefault();
+				if (robotsMetaValue != null)
+				{
+					pageRobotRules.Add(robotsMetaValue);
+				}
 			}
 
 			crawledContent.PageRobotRules = pageRobotRules.ToArray();
