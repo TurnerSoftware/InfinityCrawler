@@ -38,7 +38,7 @@ namespace InfinityCrawler.Tests
 		public async Task NoHrefLinksAreIgnored()
 		{
 			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
-			Assert.AreEqual(4, crawledContent.Links.Count());
+			Assert.AreEqual(6, crawledContent.Links.Count());
 			Assert.IsFalse(crawledContent.Links.Any(l => l.Text == "No Href"));
 		}
 

@@ -6,6 +6,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using HtmlAgilityPack;
+using InfinityCrawler.Internal;
 
 namespace InfinityCrawler.Processing.Content
 {
@@ -30,21 +31,35 @@ namespace InfinityCrawler.Processing.Content
 				pageRobotRules.AddRange(robotsHeaderValues);
 			}
 
-			var robotsMetaNode = document.DocumentNode.SelectSingleNode("html/head/meta[@name=\"ROBOTS\"]");
-			if (robotsMetaNode != null)
+			var robotsMetaValue = document.DocumentNode.SelectNodes("html/head/meta")
+				.Where(n => n.Attributes.Any(a => a.Name == "name" && a.Value.Equals("robots", StringComparison.InvariantCultureIgnoreCase)))
+				.SelectMany(n => n.Attributes.Where(a => a.Name == "content").Select(a => a.Value))
+				.FirstOrDefault();
+			if (robotsMetaValue != null)
 			{
-				var robotsMetaContent = robotsMetaNode.GetAttributeValue("content", null);
-				if (robotsMetaContent != null)
-				{
-					pageRobotRules.Add(robotsMetaContent);
-				}
+				pageRobotRules.Add(robotsMetaValue);
 			}
 
-			crawledContent.PageRobotRules = pageRobotRules;
+			crawledContent.PageRobotRules = pageRobotRules.ToArray();
 			crawledContent.CanonicalUri = GetCanonicalUri(document);
 			crawledContent.Links = GetLinks(document, requestUri).ToArray();
 
 			return crawledContent;
+		}
+
+		private Uri GetCanonicalUri(HtmlDocument document)
+		{
+			var canonicalNode = document.DocumentNode.SelectSingleNode("html/head/link[@rel=\"canonical\"]");
+			if (canonicalNode != null)
+			{
+				var canonicalHref = canonicalNode.GetAttributeValue("href", null);
+				if (canonicalHref != null && Uri.TryCreate(canonicalHref, UriKind.Absolute, out var canonicalUri))
+				{
+					return canonicalUri;
+				}
+			}
+
+			return null;
 		}
 
 		private IEnumerable<CrawlLink> GetLinks(HtmlDocument document, Uri requestUri)
@@ -83,21 +98,6 @@ namespace InfinityCrawler.Processing.Content
 					};
 				}
 			}
-		}
-
-		private Uri GetCanonicalUri(HtmlDocument document)
-		{
-			var canonicalNode = document.DocumentNode.SelectSingleNode("html/head/link[@rel=\"canonical\"]");
-			if (canonicalNode != null)
-			{
-				var canonicalHref = canonicalNode.GetAttributeValue("href", null);
-				if (canonicalHref != null && Uri.TryCreate(canonicalHref, UriKind.Absolute, out var canonicalUri))
-				{
-					return canonicalUri;
-				}
-			}
-
-			return null;
 		}
 	}
 }

@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using InfinityCrawler.Processing.Content;
-using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
