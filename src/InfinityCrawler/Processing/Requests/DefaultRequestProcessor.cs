@@ -34,7 +34,7 @@ namespace InfinityCrawler.Processing.Requests
 			}
 
 			var random = new Random();
-			var activeRequests = new ConcurrentDictionary<Task, RequestContext>();
+			var activeRequests = new ConcurrentDictionary<Task, RequestContext>(options.MaxNumberOfSimultaneousRequests, options.MaxNumberOfSimultaneousRequests);
 
 			var currentBackoff = 0;
 			var successesSinceLastThrottle = 0;
@@ -103,21 +103,23 @@ namespace InfinityCrawler.Processing.Requests
 					{
 						successesSinceLastThrottle = 0;
 						currentBackoff += (int)options.ThrottlingRequestBackoff.TotalMilliseconds;
-						Logger?.LogInformation($"New backoff of {currentBackoff}ms");
+						Logger?.LogInformation($"Increased backoff to {currentBackoff}ms");
 					}
 					else if (currentBackoff > 0)
 					{
 						successesSinceLastThrottle += 1;
-						if (successesSinceLastThrottle > options.MinSequentialSuccessesToMinimiseThrottling)
+						if (successesSinceLastThrottle == options.MinSequentialSuccessesToMinimiseThrottling)
 						{
 							var newBackoff = currentBackoff - options.ThrottlingRequestBackoff.TotalMilliseconds;
 							currentBackoff = Math.Max(0, (int)newBackoff);
 							successesSinceLastThrottle = 0;
-							Logger?.LogInformation($"New backoff of {currentBackoff}ms");
+							Logger?.LogInformation($"Decreased backoff to {currentBackoff}ms");
 						}
 					}
 				}
 			}
+
+			Logger?.LogDebug($"Completed processing {requestCount} requests");
 		}
 
 		private async Task PerformRequestAsync(HttpClient httpClient, Uri requestUri, Func<RequestResult, Task> responseAction, RequestContext context)
