@@ -59,9 +59,10 @@ namespace InfinityCrawler.Processing.Requests
 						var requestContext = new RequestContext
 						{
 							RequestNumber = requestCount + 1,
-							Timer = new Stopwatch()
+							Timer = new Stopwatch(),
+							RequestStartDelay = requestStartDelay
 						};
-						var task = PerformRequestAsync(httpClient, requestUri, responseAction, (int)requestStartDelay, requestContext);
+						var task = PerformRequestAsync(httpClient, requestUri, responseAction, requestContext);
 
 						Logger?.LogDebug($"Request #{requestContext.RequestNumber} started with {requestStartDelay}ms delay");
 
@@ -119,11 +120,11 @@ namespace InfinityCrawler.Processing.Requests
 			}
 		}
 
-		private async Task PerformRequestAsync(HttpClient httpClient, Uri requestUri, Func<RequestResult, Task> responseAction, int delay, RequestContext context)
+		private async Task PerformRequestAsync(HttpClient httpClient, Uri requestUri, Func<RequestResult, Task> responseAction, RequestContext context)
 		{
-			if (delay > 0)
+			if (context.RequestStartDelay > 0)
 			{
-				await Task.Delay(delay);
+				await Task.Delay((int)context.RequestStartDelay);
 			}
 
 			var requestStart = DateTime.UtcNow;
@@ -140,6 +141,7 @@ namespace InfinityCrawler.Processing.Requests
 				{
 					RequestUri = requestUri,
 					RequestStart = requestStart,
+					RequestStartDelay = context.RequestStartDelay,
 					ResponseMessage = response,
 					ElapsedTime = context.Timer.Elapsed
 				});
@@ -150,6 +152,7 @@ namespace InfinityCrawler.Processing.Requests
 		{
 			public int RequestNumber { get; set; }
 			public Stopwatch Timer { get; set; }
+			public double RequestStartDelay { get; set; }
 		}
 	}
 }
