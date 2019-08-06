@@ -21,7 +21,7 @@ namespace InfinityCrawler.Tests
 			return new RequestProcessorOptions
 			{
 				MaxNumberOfSimultaneousRequests = 10,
-				DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, 100),
+				DelayBetweenRequestStart = new TimeSpan(),
 				DelayJitter = new TimeSpan(),
 				TimeoutBeforeThrottle = new TimeSpan()
 			};
