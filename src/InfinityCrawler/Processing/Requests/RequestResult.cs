@@ -12,5 +12,6 @@ namespace InfinityCrawler.Processing.Requests
 		public double RequestStartDelay { get; set; }
 		public HttpResponseMessage ResponseMessage { get; set; }
 		public TimeSpan ElapsedTime { get; set; }
+		public Exception Exception { get; set; }
 	}
 }

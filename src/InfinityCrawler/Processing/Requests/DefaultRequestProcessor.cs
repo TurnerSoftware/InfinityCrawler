@@ -152,7 +152,7 @@ namespace InfinityCrawler.Processing.Requests
 					});
 				}
 			}
-			catch (TaskCanceledException)
+			catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
 			{
 				context.Timer.Stop();
 
@@ -161,7 +161,8 @@ namespace InfinityCrawler.Processing.Requests
 					RequestUri = requestUri,
 					RequestStart = requestStart,
 					RequestStartDelay = context.RequestStartDelay,
-					ElapsedTime = context.Timer.Elapsed
+					ElapsedTime = context.Timer.Elapsed,
+					Exception = ex
 				});
 			}
 		}
