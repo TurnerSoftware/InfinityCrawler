@@ -42,8 +42,12 @@ namespace InfinityCrawler.Processing.Requests
 
 			while (activeRequests.Count > 0 || !RequestQueue.IsEmpty)
 			{
+				cancellationToken.ThrowIfCancellationRequested();
+
 				while (!RequestQueue.IsEmpty)
 				{
+					cancellationToken.ThrowIfCancellationRequested();
+
 					if (RequestQueue.TryDequeue(out var requestUri))
 					{
 						var requestStartDelay = 0d;
@@ -59,23 +63,18 @@ namespace InfinityCrawler.Processing.Requests
 						var requestContext = new RequestContext
 						{
 							RequestNumber = requestCount + 1,
+							RequestUri = requestUri,
 							Timer = new Stopwatch(),
 							RequestStartDelay = requestStartDelay,
-							TimeoutToken = new CancellationTokenSource(options.RequestTimeout).Token
+							RequestTimeout = options.RequestTimeout,
+							CancellationToken = cancellationToken
 						};
-						var task = PerformRequestAsync(httpClient, requestUri, responseAction, requestContext);
+						var task = PerformRequestAsync(httpClient, responseAction, requestContext);
 
 						Logger?.LogDebug($"Request #{requestContext.RequestNumber} started with {requestStartDelay}ms delay");
 
 						activeRequests.TryAdd(task, requestContext);
 						requestCount++;
-
-						if (cancellationToken.IsCancellationRequested)
-						{
-							Logger?.LogInformation($"Cancellation has been requested for processing");
-							await Task.WhenAll(activeRequests.Keys);
-							return;
-						}
 
 						if (activeRequests.Count == options.MaxNumberOfSimultaneousRequests)
 						{
@@ -95,8 +94,6 @@ namespace InfinityCrawler.Processing.Requests
 					{
 						throw completedRequest.Exception;
 					}
-
-					Logger?.LogDebug($"Request #{requestContext.RequestNumber} completed in {requestContext.Timer.ElapsedMilliseconds}ms");
 
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
@@ -123,7 +120,7 @@ namespace InfinityCrawler.Processing.Requests
 			Logger?.LogDebug($"Completed processing {requestCount} requests");
 		}
 
-		private async Task PerformRequestAsync(HttpClient httpClient, Uri requestUri, Func<RequestResult, Task> responseAction, RequestContext context)
+		private async Task PerformRequestAsync(HttpClient httpClient, Func<RequestResult, Task> responseAction, RequestContext context)
 		{
 			if (context.RequestStartDelay > 0)
 			{
@@ -135,44 +132,60 @@ namespace InfinityCrawler.Processing.Requests
 
 			try
 			{
-				using (var response = await httpClient.GetAsync(requestUri, context.TimeoutToken))
+				var timeoutToken = new CancellationTokenSource(context.RequestTimeout).Token;
+				var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutToken).Token;
+				using (var response = await httpClient.GetAsync(context.RequestUri, combinedToken))
 				{
 					await response.Content.LoadIntoBufferAsync();
 
 					//We only want to time the request, not the handling of the response
 					context.Timer.Stop();
 
+					context.CancellationToken.ThrowIfCancellationRequested();
+
 					await responseAction(new RequestResult
 					{
-						RequestUri = requestUri,
+						RequestUri = context.RequestUri,
 						RequestStart = requestStart,
 						RequestStartDelay = context.RequestStartDelay,
 						ResponseMessage = response,
 						ElapsedTime = context.Timer.Elapsed
 					});
+
+					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms");
 				}
 			}
 			catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
 			{
 				context.Timer.Stop();
 
+				if (context.CancellationToken.IsCancellationRequested)
+				{
+					Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
+					return;
+				}
+
 				await responseAction(new RequestResult
 				{
-					RequestUri = requestUri,
+					RequestUri = context.RequestUri,
 					RequestStart = requestStart,
 					RequestStartDelay = context.RequestStartDelay,
 					ElapsedTime = context.Timer.Elapsed,
 					Exception = ex
 				});
+
+				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms");
 			}
 		}
 
 		private class RequestContext
 		{
 			public int RequestNumber { get; set; }
+			public Uri RequestUri { get; set; }
 			public Stopwatch Timer { get; set; }
 			public double RequestStartDelay { get; set; }
-			public CancellationToken TimeoutToken { get; set; }
+			public TimeSpan RequestTimeout { get; set; }
+			public CancellationToken CancellationToken { get; set; }
 		}
 	}
 }

@@ -164,7 +164,6 @@ namespace InfinityCrawler.Internal
 
 			if (RobotsFile.IsAllowedAccess(requestUri, Settings.UserAgent))
 			{
-				var remaining = Settings.MaxNumberOfPagesToCrawl - CrawledUris.Count;
 				Settings.RequestProcessor.Add(requestUri);
 			}
 			else
@@ -187,10 +186,18 @@ namespace InfinityCrawler.Internal
 			CancellationToken cancellationToken = default
 		)
 		{
+			var internalCancellation = new CancellationTokenSource();
+			var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
+				internalCancellation.Token, 
+				cancellationToken
+			).Token;
+
 			await Settings.RequestProcessor.ProcessAsync(
 				HttpClient,
 				async (requestResult) =>
 				{
+					combinedToken.ThrowIfCancellationRequested();
+					
 					var crawlState = UriCrawlStates.GetOrAdd(requestResult.RequestUri, new UriCrawlState
 					{
 						Location = requestResult.RequestUri
@@ -208,11 +215,18 @@ namespace InfinityCrawler.Internal
 					}
 					else
 					{
+						combinedToken.ThrowIfCancellationRequested();
 						await responseAction(requestResult, crawlState);
+						combinedToken.ThrowIfCancellationRequested();
+					}
+
+					if (CrawledUris.Count >= Settings.MaxNumberOfPagesToCrawl)
+					{
+						internalCancellation.Cancel();
 					}
 				},
 				Settings.RequestProcessorOptions,
-				cancellationToken
+				combinedToken
 			);
 
 			return CrawledUris.ToArray();
