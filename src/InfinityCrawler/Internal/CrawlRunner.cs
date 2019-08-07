@@ -78,7 +78,7 @@ namespace InfinityCrawler.Internal
 					var noIndex = content.PageRobotRules.Any(s => s.Equals("noindex", StringComparison.InvariantCultureIgnoreCase));
 					if (noIndex)
 					{
-						CrawledUris.Add(new CrawledUri
+						AddResult(new CrawledUri
 						{
 							Location = crawlState.Location,
 							Status = CrawlStatus.RobotsBlocked,
@@ -98,7 +98,7 @@ namespace InfinityCrawler.Internal
 					}
 				}
 
-				CrawledUris.Add(new CrawledUri
+				AddResult(new CrawledUri
 				{
 					Location = crawlState.Location,
 					Status = CrawlStatus.Crawled,
@@ -140,7 +140,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Requests.Count() == Settings.NumberOfRetries)
 				{
-					CrawledUris.Add(new CrawledUri
+					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
 						Status = CrawlStatus.MaxRetries,
@@ -152,7 +152,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Redirects != null && crawlState.Redirects.Count == Settings.MaxNumberOfRedirects)
 				{
-					CrawledUris.Add(new CrawledUri
+					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
 						RedirectChain = crawlState.Redirects,
@@ -164,16 +164,22 @@ namespace InfinityCrawler.Internal
 
 			if (RobotsFile.IsAllowedAccess(requestUri, Settings.UserAgent))
 			{
+				var remaining = Settings.MaxNumberOfPagesToCrawl - CrawledUris.Count;
 				Settings.RequestProcessor.Add(requestUri);
 			}
 			else
 			{
-				CrawledUris.Add(new CrawledUri
+				AddResult(new CrawledUri
 				{
 					Location = requestUri,
 					Status = CrawlStatus.RobotsBlocked
 				});
 			}
+		}
+
+		private void AddResult(CrawledUri result)
+		{
+			CrawledUris.Add(result);
 		}
 
 		public async Task<IEnumerable<CrawledUri>> ProcessAsync(
@@ -190,7 +196,20 @@ namespace InfinityCrawler.Internal
 						Location = requestResult.RequestUri
 					});
 
-					await responseAction(requestResult, crawlState);
+					if (requestResult.ResponseMessage == null)
+					{
+						//Retry failed requests
+						crawlState.Requests.Add(new CrawlRequest
+						{
+							RequestStart = requestResult.RequestStart,
+							ElapsedTime = requestResult.ElapsedTime
+						});
+						AddRequest(requestResult.RequestUri);
+					}
+					else
+					{
+						await responseAction(requestResult, crawlState);
+					}
 				},
 				Settings.RequestProcessorOptions,
 				cancellationToken

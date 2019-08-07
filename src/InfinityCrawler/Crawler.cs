@@ -77,7 +77,7 @@ namespace InfinityCrawler
 					HttpStatusCode.Redirect,
 					HttpStatusCode.TemporaryRedirect
 				};
-				if (redirectStatusCodes.Contains(crawlRequest.StatusCode))
+				if (redirectStatusCodes.Contains(crawlRequest.StatusCode.Value))
 				{
 					crawlRunner.AddRedirect(crawlState.Location, response.Headers.Location);
 				}

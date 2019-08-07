@@ -30,5 +30,9 @@ namespace InfinityCrawler.Processing.Requests
 		/// Minimum number of requests below the timeout before minimising the applied throttling.
 		/// </summary>
 		public int MinSequentialSuccessesToMinimiseThrottling { get; set; } = 5;
+		/// <summary>
+		/// The amount of time before a request is cancelled and retried.
+		/// </summary>
+		public TimeSpan RequestTimeout { get; set; } = new TimeSpan(0, 0, 30);
 	}
 }

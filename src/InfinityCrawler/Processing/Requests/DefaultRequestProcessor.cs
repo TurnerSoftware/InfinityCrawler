@@ -60,7 +60,8 @@ namespace InfinityCrawler.Processing.Requests
 						{
 							RequestNumber = requestCount + 1,
 							Timer = new Stopwatch(),
-							RequestStartDelay = requestStartDelay
+							RequestStartDelay = requestStartDelay,
+							TimeoutToken = new CancellationTokenSource(options.RequestTimeout).Token
 						};
 						var task = PerformRequestAsync(httpClient, requestUri, responseAction, requestContext);
 
@@ -132,11 +133,27 @@ namespace InfinityCrawler.Processing.Requests
 			var requestStart = DateTime.UtcNow;
 			context.Timer.Start();
 
-			using (var response = await httpClient.GetAsync(requestUri))
+			try
 			{
-				await response.Content.LoadIntoBufferAsync();
+				using (var response = await httpClient.GetAsync(requestUri, context.TimeoutToken))
+				{
+					await response.Content.LoadIntoBufferAsync();
 
-				//We only want to time the request, not the handling of the response
+					//We only want to time the request, not the handling of the response
+					context.Timer.Stop();
+
+					await responseAction(new RequestResult
+					{
+						RequestUri = requestUri,
+						RequestStart = requestStart,
+						RequestStartDelay = context.RequestStartDelay,
+						ResponseMessage = response,
+						ElapsedTime = context.Timer.Elapsed
+					});
+				}
+			}
+			catch (TaskCanceledException)
+			{
 				context.Timer.Stop();
 
 				await responseAction(new RequestResult
@@ -144,7 +161,6 @@ namespace InfinityCrawler.Processing.Requests
 					RequestUri = requestUri,
 					RequestStart = requestStart,
 					RequestStartDelay = context.RequestStartDelay,
-					ResponseMessage = response,
 					ElapsedTime = context.Timer.Elapsed
 				});
 			}
@@ -155,6 +171,7 @@ namespace InfinityCrawler.Processing.Requests
 			public int RequestNumber { get; set; }
 			public Stopwatch Timer { get; set; }
 			public double RequestStartDelay { get; set; }
+			public CancellationToken TimeoutToken { get; set; }
 		}
 	}
 }

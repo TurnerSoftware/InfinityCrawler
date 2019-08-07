@@ -37,7 +37,7 @@ namespace InfinityCrawler
 	{
 		public DateTime RequestStart { get; set; }
 		public TimeSpan ElapsedTime { get; set; }
-		public HttpStatusCode StatusCode { get; set; }
+		public HttpStatusCode? StatusCode { get; set; }
 		public bool IsSuccessfulStatus { get; set; }
 	}
 
