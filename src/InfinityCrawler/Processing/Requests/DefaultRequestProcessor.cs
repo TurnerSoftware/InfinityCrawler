@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -155,11 +156,11 @@ namespace InfinityCrawler.Processing.Requests
 					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms");
 				}
 			}
-			catch (TaskCanceledException) when (context.CancellationToken.IsCancellationRequested)
+			catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
 			{
 				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
 			}
-			catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
+			catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException || ex is IOException)
 			{
 				context.Timer.Stop();
 
