@@ -155,15 +155,13 @@ namespace InfinityCrawler.Processing.Requests
 					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms");
 				}
 			}
+			catch (TaskCanceledException) when (context.CancellationToken.IsCancellationRequested)
+			{
+				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
+			}
 			catch (Exception ex) when (ex is HttpRequestException || ex is TaskCanceledException)
 			{
 				context.Timer.Stop();
-
-				if (context.CancellationToken.IsCancellationRequested)
-				{
-					Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
-					return;
-				}
 
 				await responseAction(new RequestResult
 				{
@@ -175,6 +173,7 @@ namespace InfinityCrawler.Processing.Requests
 				});
 
 				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms");
+				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
 			}
 		}
 
