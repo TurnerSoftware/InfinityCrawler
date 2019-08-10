@@ -89,5 +89,17 @@ namespace InfinityCrawler.Tests
 
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("none", StringComparison.InvariantCultureIgnoreCase)));
 		}
+		[TestMethod]
+		public async Task CanonicalUriParsing()
+		{
+			var crawledContent = await PerformRequestAsync("NoCanonicalUri.html");
+			Assert.IsNull(crawledContent.CanonicalUri);
+
+			crawledContent = await PerformRequestAsync("RelativeCanonicalUri.html");
+			Assert.AreEqual(new Uri("http://localhost/RelativeCanonicalUri.html"), crawledContent.CanonicalUri);
+			
+			crawledContent = await PerformRequestAsync("AbsoluteCanonicalUri.html");
+			Assert.AreEqual(new Uri("http://localhost/AbsoluteCanonicalUri.html"), crawledContent.CanonicalUri);
+		}
 	}
 }

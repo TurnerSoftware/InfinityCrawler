@@ -45,21 +45,31 @@ namespace InfinityCrawler.Processing.Content
 			}
 
 			crawledContent.PageRobotRules = pageRobotRules.ToArray();
-			crawledContent.CanonicalUri = GetCanonicalUri(document);
+			crawledContent.CanonicalUri = GetCanonicalUri(document, requestUri);
 			crawledContent.Links = GetLinks(document, requestUri).ToArray();
 
 			return crawledContent;
 		}
-
-		private Uri GetCanonicalUri(HtmlDocument document)
+		
+		private string GetBaseHref(HtmlDocument document)
 		{
-			var canonicalNode = document.DocumentNode.SelectSingleNode("html/head/link[@rel=\"canonical\"]");
-			if (canonicalNode != null)
+			var baseNode = document.DocumentNode.SelectSingleNode("html/head/base");
+			return baseNode?.GetAttributeValue("href", string.Empty) ?? string.Empty;
+		}
+
+		private Uri GetCanonicalUri(HtmlDocument document, Uri requestUri)
+		{
+			var linkNodes = document.DocumentNode.SelectNodes("html/head/link");
+			if (linkNodes != null)
 			{
-				var canonicalHref = canonicalNode.GetAttributeValue("href", null);
-				if (canonicalHref != null && Uri.TryCreate(canonicalHref, UriKind.Absolute, out var canonicalUri))
+				var canonicalNode = linkNodes
+					.Where(n => n.Attributes.Any(a => a.Name == "rel" && a.Value.Equals("canonical", StringComparison.InvariantCultureIgnoreCase)))
+					.FirstOrDefault();
+				if (canonicalNode != null)
 				{
-					return canonicalUri;
+					var baseHref = GetBaseHref(document);
+					var canonicalHref = canonicalNode.GetAttributeValue("href", null);
+					return requestUri.BuildUriFromHref(canonicalHref, baseHref);
 				}
 			}
 
@@ -68,16 +78,11 @@ namespace InfinityCrawler.Processing.Content
 
 		private IEnumerable<CrawlLink> GetLinks(HtmlDocument document, Uri requestUri)
 		{
-			var baseHref = string.Empty;
-			var baseNode = document.DocumentNode.SelectSingleNode("html/head/base");
-			if (baseNode != null)
-			{
-				baseHref = baseNode.GetAttributeValue("href", null);
-			}
-
 			var anchorNodes = document.DocumentNode.SelectNodes("//a");
 			if (anchorNodes != null)
 			{
+				var baseHref = GetBaseHref(document);
+				
 				foreach (var anchor in anchorNodes)
 				{
 					var href = anchor.GetAttributeValue("href", null);
