@@ -12,12 +12,14 @@ using System.Threading.Tasks;
 using InfinityCrawler.Processing.Requests;
 using TurnerSoftware.RobotsExclusionTools;
 using TurnerSoftware.SitemapTools;
+using Microsoft.Extensions.Logging;
 
 namespace InfinityCrawler
 {
 	public class Crawler
 	{
 		private HttpClient HttpClient { get; }
+		private ILogger Logger { get; }
 
 		public Crawler()
 		{
@@ -28,9 +30,10 @@ namespace InfinityCrawler
 			});
 		}
 
-		public Crawler(HttpClient httpClient)
+		public Crawler(HttpClient httpClient, ILogger logger = null)
 		{
 			HttpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+			Logger = logger;
 		}
 
 		public async Task<CrawlResult> Crawl(Uri siteUri, CrawlSettings settings)
@@ -47,7 +50,7 @@ namespace InfinityCrawler
 
 			UpdateCrawlDelay(robotsFile, settings.UserAgent, settings.RequestProcessorOptions);
 
-			var crawlRunner = new CrawlRunner(baseUri, robotsFile, HttpClient, settings);
+			var crawlRunner = new CrawlRunner(baseUri, robotsFile, HttpClient, settings, Logger);
 
 			//Use any links referred to by the sitemap as a starting point
 			var urisFromSitemap = (await new SitemapQuery(HttpClient)
