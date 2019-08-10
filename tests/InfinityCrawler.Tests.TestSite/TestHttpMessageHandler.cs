@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -23,6 +24,12 @@ namespace InfinityCrawler.Tests.TestSite
 		{
 			try
 			{
+				if (request.RequestUri.Host == "external")
+				{
+					//This is the only "remote" host allowed and even then, the response is always empty.
+					return new HttpResponseMessage(HttpStatusCode.OK);
+				}
+				
 				return await InternalSendAsync(request, cancellationToken);
 			}
 			catch (IOException ex) when (ex.Message == "The request was aborted or the pipeline has finished")

@@ -33,7 +33,7 @@ namespace InfinityCrawler.Tests
 		}
 
 		[TestMethod]
-		public async Task NoHrefLinksAreIgnored()
+		public async Task MissingHrefLinksAreIgnored()
 		{
 			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
 			Assert.AreEqual(6, crawledContent.Links.Count());
@@ -100,6 +100,19 @@ namespace InfinityCrawler.Tests
 			
 			crawledContent = await PerformRequestAsync("AbsoluteCanonicalUri.html");
 			Assert.AreEqual(new Uri("http://localhost/AbsoluteCanonicalUri.html"), crawledContent.CanonicalUri);
+		}
+		[TestMethod]
+		public async Task BaseHrefLinks()
+		{
+			var crawledContent = await PerformRequestAsync("BaseHrefCrawlLink.html");
+			var links = crawledContent.Links.ToArray();
+
+			Assert.AreEqual(new Uri("http://external/"), links[0].Location);
+			Assert.AreEqual(new Uri("http://localhost/base/#RelativeFragment"), links[1].Location);
+			Assert.AreEqual(new Uri("http://localhost/base/relative/RelativeFile.html"), links[2].Location);
+			Assert.AreEqual(new Uri("http://localhost/base/relative/RelativeFile.html#Fragment"), links[3].Location);
+			Assert.AreEqual(new Uri("http://localhost/RelativeBaseFile.html"), links[4].Location);
+			Assert.AreEqual(new Uri("http://localhost/absolute/AbsoluteBaseFile.html"), links[5].Location);
 		}
 	}
 }
