@@ -12,6 +12,8 @@ namespace InfinityCrawler.Processing.Requests
 	{
 		void Add(Uri requestUri);
 
+		int PendingRequests { get; }
+
 		Task ProcessAsync(
 			HttpClient httpClient,
 			Func<RequestResult, Task> responseAction,

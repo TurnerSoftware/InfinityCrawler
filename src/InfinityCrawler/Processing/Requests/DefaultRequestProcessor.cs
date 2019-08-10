@@ -25,7 +25,10 @@ namespace InfinityCrawler.Processing.Requests
 		public void Add(Uri uri)
 		{
 			RequestQueue.Enqueue(uri);
+			PendingRequests++;
 		}
+
+		public int PendingRequests { get; private set; }
 
 		public async Task ProcessAsync(HttpClient httpClient, Func<RequestResult, Task> responseAction, RequestProcessorOptions options, CancellationToken cancellationToken = default)
 		{
@@ -90,6 +93,7 @@ namespace InfinityCrawler.Processing.Requests
 				foreach (var completedRequest in completedRequests)
 				{
 					activeRequests.TryRemove(completedRequest, out var requestContext);
+					PendingRequests--;
 
 					if (completedRequest.IsFaulted)
 					{
@@ -160,7 +164,7 @@ namespace InfinityCrawler.Processing.Requests
 			{
 				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
 			}
-			catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException || ex is IOException)
+			catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
 			{
 				context.Timer.Stop();
 
@@ -176,16 +180,6 @@ namespace InfinityCrawler.Processing.Requests
 				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms");
 				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
 			}
-		}
-
-		private class RequestContext
-		{
-			public int RequestNumber { get; set; }
-			public Uri RequestUri { get; set; }
-			public Stopwatch Timer { get; set; }
-			public double RequestStartDelay { get; set; }
-			public TimeSpan RequestTimeout { get; set; }
-			public CancellationToken CancellationToken { get; set; }
 		}
 	}
 }
