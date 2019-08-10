@@ -23,7 +23,9 @@ namespace InfinityCrawler.Tests.TestSite
 				.UseStartup<Startup>();
 
 			Server = new TestServer(builder);
-			Client = Server.CreateClient();
+
+			var internalHandler = Server.CreateHandler();
+			Client = new HttpClient(new TestHttpMessageHandler(internalHandler));
 		}
 
 		public HttpClient GetHttpClient()
