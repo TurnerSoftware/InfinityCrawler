@@ -66,10 +66,12 @@ namespace InfinityCrawler.Internal
 		{
 			if (UriCrawlStates.TryRemove(requestUri, out var crawlState))
 			{
-				var uriWithoutFragment = StripFragment(redirectUri);
+				var absoluteRedirectUri = new Uri(requestUri, redirectUri);
+				absoluteRedirectUri = StripFragment(absoluteRedirectUri);
+				
 				var redirectCrawlState = new UriCrawlState
 				{
-					Location = new Uri(requestUri, uriWithoutFragment.ToString()),
+					Location = absoluteRedirectUri,
 					Redirects = crawlState.Redirects ?? new List<CrawledUriRedirect>()
 				};
 				redirectCrawlState.Redirects.Add(new CrawledUriRedirect
