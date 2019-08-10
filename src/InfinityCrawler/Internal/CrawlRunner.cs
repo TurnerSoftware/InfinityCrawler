@@ -37,6 +37,14 @@ namespace InfinityCrawler.Internal
 
 			AddRequest(baseUri);
 		}
+		
+		private Uri StripFragment(Uri uri)
+		{
+			return new UriBuilder(uri)
+			{
+				Fragment = null
+			}.Uri;
+		}
 
 		public void AddLink(CrawlLink crawlLink)
 		{
@@ -45,21 +53,23 @@ namespace InfinityCrawler.Internal
 				return;
 			}
 
-			if (SeenUris.ContainsKey(crawlLink.Location))
+			var uriWithoutFragment = StripFragment(crawlLink.Location);
+			if (SeenUris.ContainsKey(uriWithoutFragment))
 			{
 				return;
 			}
 
-			AddRequest(crawlLink.Location, false);
+			AddRequest(uriWithoutFragment, false);
 		}
 
 		public void AddRedirect(Uri requestUri, Uri redirectUri)
 		{
 			if (UriCrawlStates.TryRemove(requestUri, out var crawlState))
 			{
+				var uriWithoutFragment = StripFragment(redirectUri);
 				var redirectCrawlState = new UriCrawlState
 				{
-					Location = new Uri(requestUri, redirectUri.ToString()),
+					Location = new Uri(requestUri, uriWithoutFragment.ToString()),
 					Redirects = crawlState.Redirects ?? new List<CrawledUriRedirect>()
 				};
 				redirectCrawlState.Redirects.Add(new CrawledUriRedirect
@@ -116,7 +126,8 @@ namespace InfinityCrawler.Internal
 
 		public void AddRequest(Uri requestUri)
 		{
-			AddRequest(requestUri, false);
+			var uriWithoutFragment = StripFragment(requestUri);
+			AddRequest(uriWithoutFragment, false);
 		}
 
 		private void AddRequest(Uri requestUri, bool skipMaxPageCheck)
