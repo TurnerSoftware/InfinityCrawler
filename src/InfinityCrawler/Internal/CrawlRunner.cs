@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using InfinityCrawler.Processing.Requests;
+using Microsoft.Extensions.Logging;
 using TurnerSoftware.RobotsExclusionTools;
 
 namespace InfinityCrawler.Internal
@@ -19,16 +20,20 @@ namespace InfinityCrawler.Internal
 		private RobotsFile RobotsFile { get; }
 		private HttpClient HttpClient { get; }
 		
+		private ILogger Logger { get; }
+		
 		private ConcurrentDictionary<Uri, UriCrawlState> UriCrawlStates { get; } = new ConcurrentDictionary<Uri, UriCrawlState>();
 		private ConcurrentDictionary<Uri, byte> SeenUris { get; } = new ConcurrentDictionary<Uri, byte>();
 		private ConcurrentBag<CrawledUri> CrawledUris { get; } = new ConcurrentBag<CrawledUri>();
 
-		public CrawlRunner(Uri baseUri, RobotsFile robotsFile, HttpClient httpClient, CrawlSettings crawlSettings)
+		public CrawlRunner(Uri baseUri, RobotsFile robotsFile, HttpClient httpClient, CrawlSettings crawlSettings, ILogger logger = null)
 		{
 			BaseUri = baseUri;
 			RobotsFile = robotsFile;
 			HttpClient = httpClient;
 			Settings = crawlSettings;
+
+			Logger = logger;
 
 			AddRequest(baseUri);
 		}
@@ -45,7 +50,7 @@ namespace InfinityCrawler.Internal
 				return;
 			}
 
-			AddRequest(crawlLink.Location);
+			AddRequest(crawlLink.Location, false);
 		}
 
 		public void AddRedirect(Uri requestUri, Uri redirectUri)
@@ -64,7 +69,7 @@ namespace InfinityCrawler.Internal
 				});
 
 				UriCrawlStates.TryAdd(redirectCrawlState.Location, redirectCrawlState);
-				AddRequest(redirectCrawlState.Location);
+				AddRequest(redirectCrawlState.Location, true);
 			}
 		}
 
@@ -111,6 +116,11 @@ namespace InfinityCrawler.Internal
 
 		public void AddRequest(Uri requestUri)
 		{
+			AddRequest(requestUri, false);
+		}
+
+		private void AddRequest(Uri requestUri, bool skipMaxPageCheck)
+		{
 			if (
 				Settings.HostAliases != null &&
 				!(
@@ -119,13 +129,23 @@ namespace InfinityCrawler.Internal
 				)
 			)
 			{
-				//Current host is not in the list of allowed hosts or matches base host
+				Logger?.LogDebug($"{requestUri.Host} is not in the list of allowed hosts.");
 				return;
 			}
 			else if (requestUri.Host != BaseUri.Host)
 			{
-				//Current host doesn't match base host
+				Logger?.LogDebug($"{requestUri.Host} doesn't match the base host.");
 				return;
+			}
+
+			if (!skipMaxPageCheck && Settings.MaxNumberOfPagesToCrawl > 0)
+			{
+				var expectedCrawlCount = CrawledUris.Count + Settings.RequestProcessor.PendingRequests;
+				if (expectedCrawlCount == Settings.MaxNumberOfPagesToCrawl)
+				{
+					Logger?.LogDebug($"Page crawl limit blocks adding request for {requestUri}");
+					return;
+				}
 			}
 
 			SeenUris.TryAdd(requestUri, 0);
@@ -186,18 +206,10 @@ namespace InfinityCrawler.Internal
 			CancellationToken cancellationToken = default
 		)
 		{
-			var internalCancellation = new CancellationTokenSource();
-			var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(
-				internalCancellation.Token, 
-				cancellationToken
-			).Token;
-
 			await Settings.RequestProcessor.ProcessAsync(
 				HttpClient,
 				async (requestResult) =>
 				{
-					combinedToken.ThrowIfCancellationRequested();
-					
 					var crawlState = UriCrawlStates.GetOrAdd(requestResult.RequestUri, new UriCrawlState
 					{
 						Location = requestResult.RequestUri
@@ -215,18 +227,11 @@ namespace InfinityCrawler.Internal
 					}
 					else
 					{
-						combinedToken.ThrowIfCancellationRequested();
 						await responseAction(requestResult, crawlState);
-						combinedToken.ThrowIfCancellationRequested();
-					}
-
-					if (CrawledUris.Count >= Settings.MaxNumberOfPagesToCrawl)
-					{
-						internalCancellation.Cancel();
 					}
 				},
 				Settings.RequestProcessorOptions,
-				combinedToken
+				cancellationToken
 			);
 
 			return CrawledUris.ToArray();
