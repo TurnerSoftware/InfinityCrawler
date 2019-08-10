@@ -13,7 +13,7 @@ namespace InfinityCrawler.Tests
 		protected Crawler GetTestSiteCrawler(SiteContext siteContext)
 		{
 			var httpClient = TestSiteConfiguration.GetHttpClient(siteContext);
-			return new Crawler(httpClient);
+			return new Crawler(httpClient, GetLogger<Crawler>());
 		}
 
 		protected RequestProcessorOptions GetNoDelayRequestProcessorOptions()
