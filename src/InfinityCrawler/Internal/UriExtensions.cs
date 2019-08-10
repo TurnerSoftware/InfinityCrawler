@@ -8,7 +8,9 @@ namespace InfinityCrawler.Internal
 	{
 		public static Uri BuildUriFromHref(this Uri pageUri, string href, string baseHref = null)
 		{
-			var hrefWithoutFragment = href.Split('#')[0];
+			var hrefPieces = href.Split(new[] { '#' }, 2);
+			var hrefWithoutFragment = hrefPieces[0];
+			var hrefFragment = hrefPieces.Length > 1 ? hrefPieces[1] : null;
 
 			if (Uri.IsWellFormedUriString(hrefWithoutFragment, UriKind.RelativeOrAbsolute))
 			{
@@ -20,7 +22,10 @@ namespace InfinityCrawler.Internal
 					baseUri = new Uri(pageUri, baseHref);
 				}
 
-				return new Uri(baseUri, hrefWithoutFragment);
+				return new UriBuilder(new Uri(baseUri, hrefWithoutFragment))
+				{
+					Fragment = hrefFragment
+				}.Uri;
 			}
 
 			return null;
