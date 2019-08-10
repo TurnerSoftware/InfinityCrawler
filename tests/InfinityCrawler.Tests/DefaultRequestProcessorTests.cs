@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
@@ -65,6 +66,85 @@ namespace InfinityCrawler.Tests
 			Assert.AreEqual(100, results[6].RequestStartDelay);
 			Assert.AreEqual(100, results[7].RequestStartDelay);
 			Assert.AreEqual(0, results[8].RequestStartDelay);
+		}
+
+		[TestMethod]
+		public async Task ProcessCancellationTest()
+		{
+			var httpClient = TestSiteConfiguration.GetHttpClient(new SiteContext
+			{
+				SiteFolder = "DefaultRequestProcessor"
+			});
+
+			var processor = new DefaultRequestProcessor(GetLogger<DefaultRequestProcessor>());
+
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-1"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-2"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-3"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-4"));
+
+			var results = new ConcurrentBag<RequestResult>();
+			var tokenSource = new CancellationTokenSource(300);
+
+			try
+			{
+				await processor.ProcessAsync(httpClient, requestResult =>
+				{
+					results.Add(requestResult);
+					return Task.CompletedTask;
+				}, new RequestProcessorOptions
+				{
+					DelayBetweenRequestStart = new TimeSpan(),
+					MaxNumberOfSimultaneousRequests = 2,
+					TimeoutBeforeThrottle = new TimeSpan(),
+					DelayJitter = new TimeSpan()
+				}, tokenSource.Token);
+			}
+			catch (OperationCanceledException)
+			{
+
+			}
+
+			Assert.AreNotEqual(3, results.Count);
+			Assert.AreNotEqual(4, results.Count);
+		}
+
+		[TestMethod]
+		public async Task RequestTimeoutTest()
+		{
+			var httpClient = TestSiteConfiguration.GetHttpClient(new SiteContext
+			{
+				SiteFolder = "DefaultRequestProcessor"
+			});
+
+			var processor = new DefaultRequestProcessor(GetLogger<DefaultRequestProcessor>());
+
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-1"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-2"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-3"));
+			processor.Add(new Uri("http://localhost/delay/300/300ms-delay-4"));
+
+			var results = new ConcurrentBag<RequestResult>();
+
+			await processor.ProcessAsync(httpClient, requestResult =>
+			{
+				results.Add(requestResult);
+				return Task.CompletedTask;
+			}, new RequestProcessorOptions
+			{
+				DelayBetweenRequestStart = new TimeSpan(),
+				MaxNumberOfSimultaneousRequests = 4,
+				TimeoutBeforeThrottle = new TimeSpan(),
+				DelayJitter = new TimeSpan(),
+				RequestTimeout = new TimeSpan(0, 0, 0, 0, 150)
+			});
+
+			Assert.AreEqual(4, results.Count);
+
+			foreach (var requestResult in results)
+			{
+				Assert.IsInstanceOfType(requestResult.Exception, typeof(OperationCanceledException));
+			}
 		}
 	}
 }
