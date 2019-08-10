@@ -113,5 +113,27 @@ namespace InfinityCrawler.Tests
 			Assert.AreEqual(CrawlStatus.MaxRedirects, crawledUri.Status);
 			Assert.AreEqual(3, crawledUri.RedirectChain.Count);
 		}
+		
+		[TestMethod]
+		public async Task MaximumPagesCrawledFollowed()
+		{
+			var crawler = GetTestSiteCrawler(new SiteContext
+			{
+				SiteFolder = "BasicSite"
+			});
+			var settings = new CrawlSettings
+			{
+				RequestProcessor = GetLoggedRequestProcessor(),
+				RequestProcessorOptions = GetNoDelayRequestProcessorOptions()
+			};
+
+			settings.MaxNumberOfPagesToCrawl = 4;
+			var result = await crawler.Crawl(new Uri("http://localhost/"), settings);
+			Assert.AreEqual(4, result.CrawledUris.Count());
+
+			settings.MaxNumberOfPagesToCrawl = 2;
+			result = await crawler.Crawl(new Uri("http://localhost/"), settings);
+			Assert.AreEqual(2, result.CrawledUris.Count());
+		}
 	}
 }
