@@ -12,13 +12,15 @@ namespace InfinityCrawler.Internal
 
 			if (Uri.IsWellFormedUriString(hrefWithoutFragment, UriKind.RelativeOrAbsolute))
 			{
-				if (Uri.IsWellFormedUriString(baseHref, UriKind.Absolute))
+				var baseUri = pageUri;
+
+				//Allows <base href=""> to work
+				if (Uri.IsWellFormedUriString(baseHref, UriKind.RelativeOrAbsolute))
 				{
-					//Allows <base href=""> to work
-					return new Uri(baseHref);
+					baseUri = new Uri(pageUri, baseHref);
 				}
 
-				return new Uri(pageUri, hrefWithoutFragment);
+				return new Uri(baseUri, hrefWithoutFragment);
 			}
 
 			return null;
