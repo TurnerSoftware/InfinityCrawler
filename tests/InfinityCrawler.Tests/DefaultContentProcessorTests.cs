@@ -31,13 +31,6 @@ namespace InfinityCrawler.Tests
 			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
 			Assert.AreEqual(0, crawledContent.PageRobotRules.Count());
 		}
-		
-		[TestMethod]
-		public async Task NoCanonicalParsed()
-		{
-			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
-			Assert.IsNull(crawledContent.CanonicalUri);
-		}
 
 		[TestMethod]
 		public async Task NoHrefLinksAreIgnored()
