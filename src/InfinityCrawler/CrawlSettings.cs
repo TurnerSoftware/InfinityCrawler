@@ -18,8 +18,5 @@ namespace InfinityCrawler
 		public IContentProcessor ContentProcessor { get; set; } = new DefaultContentProcessor();
 		public IRequestProcessor RequestProcessor { get; set; } = new DefaultRequestProcessor();
 		public RequestProcessorOptions RequestProcessorOptions { get; set; } = new RequestProcessorOptions();
-
-		public Func<CrawledUri, bool> PageCrawlComplete { get; set; }
-		public Func<CrawledUri, bool> AcceptCrawledUri { get; set; }
 	}
 }
