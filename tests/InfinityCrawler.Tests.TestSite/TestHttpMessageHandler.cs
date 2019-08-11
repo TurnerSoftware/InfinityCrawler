@@ -24,7 +24,7 @@ namespace InfinityCrawler.Tests.TestSite
 		{
 			try
 			{
-				if (request.RequestUri.Host == "external")
+				if (request.RequestUri.Host == "test-domain.com")
 				{
 					//This is the only "remote" host allowed and even then, the response is always empty.
 					return new HttpResponseMessage(HttpStatusCode.OK);

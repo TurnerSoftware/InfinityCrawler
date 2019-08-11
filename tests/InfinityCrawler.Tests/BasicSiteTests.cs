@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -97,10 +98,26 @@ namespace InfinityCrawler.Tests
 			var uri = new Uri("http://localhost/index.html");
 			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
 
-			var externalUri = new Uri("http://www.example.com");
+			var externalUri = new Uri("http://not-allowed-domain.com");
 
 			Assert.IsTrue(crawledUri.Content.Links.Any(l => l.Location == externalUri));
 			Assert.IsFalse(result.CrawledUris.Any(c => c.Location == externalUri));
+		}
+		
+		[TestMethod]
+		public async Task AllowedExternalSitesAreCrawled()
+		{
+			var result = await GetCrawlResult();
+			var uri = new Uri("http://localhost/index.html");
+			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
+
+			var externalUri = new Uri("http://test-domain.com");
+
+			Assert.IsTrue(crawledUri.Content.Links.Any(l => l.Location == externalUri));
+
+			var externalCrawl = result.CrawledUris.FirstOrDefault(c => c.Location == externalUri);
+			Assert.IsNotNull(externalCrawl);
+			Assert.AreEqual(HttpStatusCode.OK, externalCrawl.Requests.LastOrDefault().StatusCode);
 		}
 
 		[TestMethod]
