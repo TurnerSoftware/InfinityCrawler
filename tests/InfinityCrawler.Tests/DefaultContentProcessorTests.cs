@@ -67,36 +67,34 @@ namespace InfinityCrawler.Tests
 		}
 
 		[TestMethod]
-		public async Task MetaNoFollowParsed()
+		public async Task MetaRobotsParsed()
 		{
 			var crawledContent = await PerformRequestAsync("MetaNoFollow.html");
-
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase)));
-		}
-		[TestMethod]
-		public async Task MetaNoIndexParsed()
-		{
-			var crawledContent = await PerformRequestAsync("MetaNoIndex.html");
-
+			
+			crawledContent = await PerformRequestAsync("MetaNoIndex.html");
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("noindex", StringComparison.InvariantCultureIgnoreCase)));
-		}
-		[TestMethod]
-		public async Task MetaNoIndexNoFollowParsed()
-		{
-			var crawledContent = await PerformRequestAsync("MetaNoIndexNoFollow.html");
 
+			crawledContent = await PerformRequestAsync("MetaNoIndexNoFollow.html");
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r =>
 				r.IndexOf("noindex", StringComparison.InvariantCultureIgnoreCase) != -1 &&
 				r.IndexOf("nofollow", StringComparison.InvariantCultureIgnoreCase) != -1
 			));
-		}
-		[TestMethod]
-		public async Task MetaNoneParsed()
-		{
-			var crawledContent = await PerformRequestAsync("MetaNone.html");
 
+			crawledContent = await PerformRequestAsync("MetaNone.html");
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("none", StringComparison.InvariantCultureIgnoreCase)));
 		}
+		[TestMethod]
+		public async Task HeaderRobotsParsed()
+		{
+			var crawledContent = await PerformRequestAsync("robots/header-page-noindex");
+			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("noindex", StringComparison.InvariantCultureIgnoreCase)));
+
+			crawledContent = await PerformRequestAsync("robots/header-bot-specific");
+			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("onebot", StringComparison.InvariantCultureIgnoreCase)));
+			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("twobot", StringComparison.InvariantCultureIgnoreCase)));
+		}
+
 		[TestMethod]
 		public async Task CanonicalUriParsing()
 		{
