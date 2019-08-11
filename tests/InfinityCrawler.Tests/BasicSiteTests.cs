@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -161,6 +162,42 @@ namespace InfinityCrawler.Tests
 			settings.MaxNumberOfPagesToCrawl = 2;
 			result = await crawler.Crawl(new Uri("http://localhost/"), settings);
 			Assert.AreEqual(2, result.CrawledUris.Count());
+		}
+		
+		[TestMethod]
+		public async Task AutoRetryOnFailure()
+		{
+			var crawler = GetTestSiteCrawler(new SiteContext
+			{
+				SiteFolder = "EmptySite"
+			});
+			var settings = new CrawlSettings
+			{
+				NumberOfRetries = 3,
+				RequestProcessor = GetLoggedRequestProcessor(),
+				RequestProcessorOptions = new RequestProcessorOptions
+				{
+					DelayBetweenRequestStart = new TimeSpan(),
+					MaxNumberOfSimultaneousRequests = 4,
+					TimeoutBeforeThrottle = new TimeSpan(),
+					DelayJitter = new TimeSpan(),
+					RequestTimeout = new TimeSpan(0, 0, 0, 0, 150)
+				}
+			};
+
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-1"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-2"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-3"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-4"));
+
+			var results = await crawler.Crawl(new Uri("http://localhost/"), settings);
+			var delayedCrawls = results.CrawledUris.Where(c => c.Location.PathAndQuery.Contains("delay")).ToArray();
+
+			foreach (var crawledUri in delayedCrawls)
+			{
+				Assert.AreEqual(CrawlStatus.MaxRetries, crawledUri.Status);
+				Assert.IsNull(crawledUri.Content);
+			}
 		}
 	}
 }
