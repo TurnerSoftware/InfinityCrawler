@@ -146,5 +146,26 @@ namespace InfinityCrawler.Tests
 				Assert.IsInstanceOfType(requestResult.Exception, typeof(OperationCanceledException));
 			}
 		}
+		[TestMethod, ExpectedExceptionPattern(typeof(Exception), nameof(FaultedTaskThrowsException))]
+		public async Task FaultedTaskThrowsException()
+		{
+			var httpClient = TestSiteConfiguration.GetHttpClient(new SiteContext
+			{
+				SiteFolder = "DefaultRequestProcessor"
+			});
+
+			var processor = new DefaultRequestProcessor(GetLogger<DefaultRequestProcessor>());
+
+			processor.Add(new Uri("http://localhost/"));
+
+			await processor.ProcessAsync(httpClient, requestResult =>
+			{
+				throw new Exception(nameof(FaultedTaskThrowsException));
+			}, new RequestProcessorOptions
+			{
+				DelayBetweenRequestStart = new TimeSpan(),
+				DelayJitter = new TimeSpan()
+			});
+		}
 	}
 }
