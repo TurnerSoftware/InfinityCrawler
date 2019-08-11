@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -97,13 +98,10 @@ namespace InfinityCrawler.Processing.Requests
 
 					if (completedRequest.IsFaulted)
 					{
-						var exception = completedRequest.Exception;
-						if (exception is AggregateException)
-						{
-							exception = exception.InnerExceptions.FirstOrDefault();
-						}
+						var aggregateException = completedRequest.Exception;
 						
-						throw exception;
+						//Keep the existing stack trace when re-throwing
+						ExceptionDispatchInfo.Capture(aggregateException.InnerException).Throw();
 					}
 
 					//Manage the throttling based on timeouts and successes
