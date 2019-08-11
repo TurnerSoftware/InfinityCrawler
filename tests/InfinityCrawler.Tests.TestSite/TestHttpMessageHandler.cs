@@ -27,7 +27,13 @@ namespace InfinityCrawler.Tests.TestSite
 				if (request.RequestUri.Host == "test-domain.com")
 				{
 					//This is the only "remote" host allowed and even then, the response is always empty.
-					return new HttpResponseMessage(HttpStatusCode.OK);
+					var stream = new MemoryStream();
+					return new HttpResponseMessage(HttpStatusCode.OK)
+					{
+						RequestMessage = request,
+						Version = HttpVersion.Version11,
+						Content = new StreamContent(stream)
+					};
 				}
 				
 				return await InternalSendAsync(request, cancellationToken);
