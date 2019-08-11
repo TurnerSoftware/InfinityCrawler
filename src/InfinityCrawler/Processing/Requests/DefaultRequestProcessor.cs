@@ -97,7 +97,13 @@ namespace InfinityCrawler.Processing.Requests
 
 					if (completedRequest.IsFaulted)
 					{
-						throw completedRequest.Exception;
+						var exception = completedRequest.Exception;
+						if (exception is AggregateException)
+						{
+							exception = exception.InnerExceptions.FirstOrDefault();
+						}
+						
+						throw exception;
 					}
 
 					//Manage the throttling based on timeouts and successes
