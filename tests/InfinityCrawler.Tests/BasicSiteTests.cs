@@ -107,7 +107,17 @@ namespace InfinityCrawler.Tests
 		[TestMethod]
 		public async Task AllowedExternalSitesAreCrawled()
 		{
-			var result = await GetCrawlResult();
+			var crawler = GetTestSiteCrawler(new SiteContext
+			{
+				SiteFolder = "BasicSite"
+			});
+			var settings = new CrawlSettings
+			{
+				HostAliases = new[] { "test-domain.com" },
+				RequestProcessor = GetLoggedRequestProcessor(),
+				RequestProcessorOptions = GetNoDelayRequestProcessorOptions()
+			};
+			var result = await crawler.Crawl(new Uri("http://localhost/"), settings);
 			var uri = new Uri("http://localhost/index.html");
 			var crawledUri = result.CrawledUris.Where(c => c.Location == uri).FirstOrDefault();
 
