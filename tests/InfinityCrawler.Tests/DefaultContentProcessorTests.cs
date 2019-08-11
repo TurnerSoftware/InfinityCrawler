@@ -91,8 +91,8 @@ namespace InfinityCrawler.Tests
 			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("noindex", StringComparison.InvariantCultureIgnoreCase)));
 
 			crawledContent = await PerformRequestAsync("robots/header-bot-specific");
-			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("onebot", StringComparison.InvariantCultureIgnoreCase)));
-			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Equals("twobot", StringComparison.InvariantCultureIgnoreCase)));
+			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Contains("onebot")));
+			Assert.IsTrue(crawledContent.PageRobotRules.Any(r => r.Contains("twobot")));
 		}
 
 		[TestMethod]

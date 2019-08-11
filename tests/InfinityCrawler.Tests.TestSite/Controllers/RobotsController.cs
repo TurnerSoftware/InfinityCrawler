@@ -52,8 +52,11 @@ namespace InfinityCrawler.Tests.TestSite.Controllers
 		[Route("header-bot-specific")]
 		public IActionResult BotSpecific()
 		{
-			Response.Headers.Add("X-Robots-Tag", "onebot: noindex");
-			Response.Headers.Add("X-Robots-Tag", "twobot: nofollow");
+			Response.Headers.Add("X-Robots-Tag", new[]
+			{
+				"onebot: noindex",
+				"twobot: nofollow"
+			});
 			return GetResult("header-bot-specific");
 		}
 	}
