@@ -16,7 +16,7 @@ namespace InfinityCrawler.Tests
 			var response = await httpClient.GetAsync(requestUri);
 			await response.Content.LoadIntoBufferAsync();
 			var contentStream = await response.Content.ReadAsStreamAsync();
-			return contentProcessor.Parse(requestUri, response.Content.Headers, contentStream);
+			return contentProcessor.Parse(requestUri, response.Headers, response.Content.Headers, contentStream);
 		}
 	}
 }

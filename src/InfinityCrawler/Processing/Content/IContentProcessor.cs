@@ -9,6 +9,6 @@ namespace InfinityCrawler.Processing.Content
 {
 	public interface IContentProcessor
 	{
-		CrawledContent Parse(Uri requestUri, HttpContentHeaders headers, Stream contentStream);
+		CrawledContent Parse(Uri requestUri, HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders, Stream contentStream);
 	}
 }
