@@ -132,6 +132,14 @@ namespace InfinityCrawler.Tests
 		}
 
 		[TestMethod]
+		public async Task RelNoFollowLinksAreIgnored()
+		{
+			var result = await GetCrawlResult();
+			var uri = new Uri("http://localhost/index.html?v=rel-no-follow");
+			Assert.AreEqual(0, result.CrawledUris.Count(c => c.Location == uri));
+		}
+
+		[TestMethod]
 		public async Task MaximumRedirectLimitFollowed()
 		{
 			var result = await GetCrawlResult();
