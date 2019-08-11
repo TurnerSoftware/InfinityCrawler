@@ -134,16 +134,13 @@ namespace InfinityCrawler.Internal
 
 		private void AddRequest(Uri requestUri, bool skipMaxPageCheck)
 		{
-			if (
-				Settings.HostAliases != null &&
-				!(
-					requestUri.Host == BaseUri.Host ||
-					Settings.HostAliases.Contains(requestUri.Host)
-				)
-			)
+			if (Settings.HostAliases != null)
 			{
-				Logger?.LogDebug($"{requestUri.Host} is not in the list of allowed hosts.");
-				return;
+				if (!(requestUri.Host == BaseUri.Host || Settings.HostAliases.Contains(requestUri.Host)))
+				{
+					Logger?.LogDebug($"{requestUri.Host} is not in the list of allowed hosts.");
+					return;
+				}
 			}
 			else if (requestUri.Host != BaseUri.Host)
 			{
