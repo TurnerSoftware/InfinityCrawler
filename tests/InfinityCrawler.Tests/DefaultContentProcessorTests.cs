@@ -36,7 +36,7 @@ namespace InfinityCrawler.Tests
 		public async Task MissingHrefLinksAreIgnored()
 		{
 			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
-			Assert.AreEqual(7, crawledContent.Links.Count());
+			Assert.AreEqual(6, crawledContent.Links.Count());
 			Assert.IsFalse(crawledContent.Links.Any(l => l.Text == "No Href"));
 		}
 		
@@ -44,7 +44,7 @@ namespace InfinityCrawler.Tests
 		public async Task InvalidHrefLinksAreIgnored()
 		{
 			var crawledContent = await PerformRequestAsync("CrawlLinkContent.html");
-			Assert.AreEqual(7, crawledContent.Links.Count());
+			Assert.AreEqual(6, crawledContent.Links.Count());
 			Assert.IsFalse(crawledContent.Links.Any(l => l.Text == "Invalid Href"));
 		}
 
@@ -115,7 +115,7 @@ namespace InfinityCrawler.Tests
 			var crawledContent = await PerformRequestAsync("BaseHrefCrawlLink.html");
 			var links = crawledContent.Links.ToArray();
 
-			Assert.AreEqual(new Uri("http://external/"), links[0].Location);
+			Assert.AreEqual(new Uri("http://test-domain.com/"), links[0].Location);
 			Assert.AreEqual(new Uri("http://localhost/base/#RelativeFragment"), links[1].Location);
 			Assert.AreEqual(new Uri("http://localhost/base/relative/RelativeFile.html"), links[2].Location);
 			Assert.AreEqual(new Uri("http://localhost/base/relative/RelativeFile.html#Fragment"), links[3].Location);
