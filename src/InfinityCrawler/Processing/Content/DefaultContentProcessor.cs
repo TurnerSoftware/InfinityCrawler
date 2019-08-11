@@ -16,9 +16,9 @@ namespace InfinityCrawler.Processing.Content
 		{
 			var crawledContent = new CrawledContent
 			{
-				ContentType = headers.ContentType.MediaType,
-				CharacterSet = headers.ContentType.CharSet,
-				ContentEncoding = string.Join(",", headers.ContentEncoding)
+				ContentType = headers.ContentType?.MediaType,
+				CharacterSet = headers.ContentType?.CharSet,
+				ContentEncoding = headers.ContentEncoding != null ? string.Join(",", headers.ContentEncoding) : null
 			};
 
 			var document = new HtmlDocument();
