@@ -13,11 +13,15 @@ namespace InfinityCrawler.Tests
 		protected async Task<CrawledContent> RequestAndProcessContentAsync(SiteContext siteContext, Uri requestUri, IContentProcessor contentProcessor)
 		{
 			var httpClient = TestSiteConfiguration.GetHttpClient(siteContext);
-			var response = await httpClient.GetAsync(requestUri);
-			await response.Content.LoadIntoBufferAsync();
-			var contentStream = await response.Content.ReadAsStreamAsync();
-			var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
-			return contentProcessor.Parse(requestUri, headers, contentStream);
+			using (var response = await httpClient.GetAsync(requestUri))
+			{
+				await response.Content.LoadIntoBufferAsync();
+				using (var contentStream = await response.Content.ReadAsStreamAsync())
+				{
+					var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
+					return contentProcessor.Parse(requestUri, headers, contentStream);
+				}
+			}
 		}
 	}
 }
