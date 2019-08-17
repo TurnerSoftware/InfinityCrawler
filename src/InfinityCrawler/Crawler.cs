@@ -13,6 +13,7 @@ using InfinityCrawler.Processing.Requests;
 using TurnerSoftware.RobotsExclusionTools;
 using TurnerSoftware.SitemapTools;
 using Microsoft.Extensions.Logging;
+using InfinityCrawler.Processing.Content;
 
 namespace InfinityCrawler
 {
@@ -88,7 +89,8 @@ namespace InfinityCrawler
 				{
 					using (var contentStream = await response.Content.ReadAsStreamAsync())
 					{
-						var content = settings.ContentProcessor.Parse(crawlState.Location, response.Headers, response.Content.Headers, contentStream);
+						var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
+						var content = settings.ContentProcessor.Parse(crawlState.Location, headers, contentStream);
 						contentStream.Seek(0, SeekOrigin.Begin);
 						content.RawContent = await new StreamReader(contentStream).ReadToEndAsync();
 						crawlRunner.AddResult(crawlState.Location, content);

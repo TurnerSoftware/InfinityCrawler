@@ -12,22 +12,22 @@ namespace InfinityCrawler.Processing.Content
 {
 	public class DefaultContentProcessor : IContentProcessor
 	{
-		public CrawledContent Parse(Uri requestUri, HttpResponseHeaders responseHeaders, HttpContentHeaders contentHeaders, Stream contentStream)
+		public CrawledContent Parse(Uri requestUri, CrawlHeaders headers, Stream contentStream)
 		{
 			var crawledContent = new CrawledContent
 			{
-				ContentType = contentHeaders.ContentType?.MediaType,
-				CharacterSet = contentHeaders.ContentType?.CharSet,
-				ContentEncoding = contentHeaders.ContentEncoding != null ? string.Join(",", contentHeaders.ContentEncoding) : null
+				ContentType = headers.ContentHeaders.ContentType?.MediaType,
+				CharacterSet = headers.ContentHeaders.ContentType?.CharSet,
+				ContentEncoding = headers.ContentHeaders.ContentEncoding != null ? string.Join(",", headers.ContentHeaders.ContentEncoding) : null
 			};
 
 			var document = new HtmlDocument();
 			document.Load(contentStream);
 			
 			var pageRobotRules = new List<string>();
-			if (responseHeaders.Contains("X-Robots-Tag"))
+			if (headers.ResponseHeaders.Contains("X-Robots-Tag"))
 			{
-				var robotsHeaderValues = responseHeaders.GetValues("X-Robots-Tag");
+				var robotsHeaderValues = headers.ResponseHeaders.GetValues("X-Robots-Tag");
 				pageRobotRules.AddRange(robotsHeaderValues);
 			}
 
