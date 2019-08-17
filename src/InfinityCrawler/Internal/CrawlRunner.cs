@@ -22,6 +22,8 @@ namespace InfinityCrawler.Internal
 		
 		private ILogger Logger { get; }
 		
+		private RobotsPageParser RobotsPageParser { get; }
+		
 		private ConcurrentDictionary<Uri, UriCrawlState> UriCrawlStates { get; } = new ConcurrentDictionary<Uri, UriCrawlState>();
 		private ConcurrentDictionary<Uri, byte> SeenUris { get; } = new ConcurrentDictionary<Uri, byte>();
 		private ConcurrentBag<CrawledUri> CrawledUris { get; } = new ConcurrentBag<CrawledUri>();
@@ -34,6 +36,7 @@ namespace InfinityCrawler.Internal
 			Settings = crawlSettings;
 
 			Logger = logger;
+			RobotsPageParser = new RobotsPageParser();
 
 			AddRequest(baseUri);
 		}
@@ -91,9 +94,8 @@ namespace InfinityCrawler.Internal
 			{
 				if (content != null)
 				{
-					//TODO: PageRobotRules should be run through the RobotsParser
-					var noIndex = content.PageRobotRules.Any(s => s.Equals("noindex", StringComparison.InvariantCultureIgnoreCase));
-					if (noIndex)
+					var robotsPageDefinition = RobotsPageParser.FromRules(content.PageRobotRules);
+					if (!robotsPageDefinition.CanIndex(Settings.UserAgent))
 					{
 						AddResult(new CrawledUri
 						{
@@ -105,8 +107,7 @@ namespace InfinityCrawler.Internal
 						return;
 					}
 
-					var noFollow = content.PageRobotRules.Any(s => s.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase));
-					if (!noFollow)
+					if (robotsPageDefinition.CanFollowLinks(Settings.UserAgent))
 					{
 						foreach (var crawlLink in content.Links)
 						{

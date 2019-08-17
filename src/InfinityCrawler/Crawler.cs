@@ -46,7 +46,7 @@ namespace InfinityCrawler
 			overallCrawlStopwatch.Start();
 
 			var baseUri = new Uri(siteUri.GetLeftPart(UriPartial.Authority));
-			var robotsFile = await new RobotsParser(HttpClient).FromUriAsync(baseUri);
+			var robotsFile = await new RobotsFileParser(HttpClient).FromUriAsync(baseUri);
 
 			UpdateCrawlDelay(robotsFile, settings.UserAgent, settings.RequestProcessorOptions);
 
