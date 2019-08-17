@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 
@@ -22,7 +23,8 @@ namespace InfinityCrawler
 	{
 		Crawled,
 		RobotsBlocked,
-		MaxRetries
+		MaxRetries,
+		MaxRedirects
 	}
 	
 	public class CrawledUriRedirect
@@ -35,7 +37,7 @@ namespace InfinityCrawler
 	{
 		public DateTime RequestStart { get; set; }
 		public TimeSpan ElapsedTime { get; set; }
-		public HttpStatusCode StatusCode { get; set; }
+		public HttpStatusCode? StatusCode { get; set; }
 		public bool IsSuccessfulStatus { get; set; }
 	}
 
@@ -44,10 +46,12 @@ namespace InfinityCrawler
 		public string ContentType { get; set; }
 		public string CharacterSet { get; set; }
 		public string ContentEncoding { get; set; }
+		
+		public IEnumerable<string> PageRobotRules { get; set; }
 
 		public string RawContent { get; set; }
 		
 		public Uri CanonicalUri { get; set; }
-		public IEnumerable<CrawlLink> Links { get; set; }
+		public IEnumerable<CrawlLink> Links { get; set; } = Enumerable.Empty<CrawlLink>();
 	}
 }

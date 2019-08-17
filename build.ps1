@@ -5,6 +5,9 @@ param(
     [bool] $CreatePackages
 )
 
+$testProject = "tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj"
+$testCoverageFilter = "+[InfinityCrawler]* -[InfinityCrawler.Tests]*"
+
 $packageOutputFolder = "$PSScriptRoot\build-artifacts"
 mkdir -Force $packageOutputFolder | Out-Null
 
@@ -26,7 +29,7 @@ Write-Host "Solution built!" -ForegroundColor "Green"
 
 if ($RunTests -And -Not $CheckCoverage) {
     Write-Host "Running tests without coverage..." -ForegroundColor "Magenta"
-	dotnet test tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj
+	dotnet test $testProject
 	if ($LastExitCode -ne 0) {
         Write-Host "Tests failed, aborting build!" -Foreground "Red"
         Exit 1
@@ -35,7 +38,7 @@ if ($RunTests -And -Not $CheckCoverage) {
 }
 elseif ($RunTests -And $CheckCoverage) {
 	Write-Host "Running tests with coverage..." -ForegroundColor "Magenta"
-	Invoke-Expression ("$env:LOCALAPPDATA\Apps\OpenCover\" + 'OpenCover.Console.exe -register:user -target:"%LocalAppData%\Microsoft\dotnet\dotnet.exe" -targetargs:"test tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj /p:DebugType=Full" -filter:"+[InfinityCrawler]* -[InfinityCrawler.Tests]*" -output:"' + $packageOutputFolder + '\coverage.xml" -oldstyle')
+	OpenCover.Console.exe -register:user -target:"%LocalAppData%\Microsoft\dotnet\dotnet.exe" -targetargs:"test $testProject /p:DebugType=Full" -filter:"$testCoverageFilter" -output:"$packageOutputFolder\coverage.xml" -oldstyle
     if ($LastExitCode -ne 0 -Or -Not $?) {
         Write-Host "Failure performing tests with coverage, aborting!" -Foreground "Red"
 		Exit 1

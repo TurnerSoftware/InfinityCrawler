@@ -38,6 +38,20 @@ namespace InfinityCrawler.Tests.TestSite.Controllers
 			};
 		}
 
+		[Route("redirect/{depth}/{path}")]
+		public IActionResult Redirect(int depth, string path)
+		{
+			if (depth <= 0)
+			{
+				return new ContentResult
+				{
+					Content = path
+				};
+			}
+
+			return RedirectToAction("Redirect", new { depth = depth - 1, path });
+		}
+
 		[Route("sitemap.xml")]
 		public IActionResult DynamicSitemap()
 		{
