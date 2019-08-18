@@ -1,0 +1,4 @@
+{
+  "TestProject": "tests/InfinityCrawler.Tests/InfinityCrawler.Tests.csproj",
+  "TestCoverageFilter": "+[InfinityCrawler]* -[InfinityCrawler.Tests]*"
+}

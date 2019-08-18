@@ -1,4 +1,4 @@
-version: '{build}'
+version: 'Build {build}'
 image: Visual Studio 2017
 skip_branch_with_pr: true
 
@@ -8,7 +8,7 @@ install:
 
   
 build_script:
-  - ps: .\build.appveyor.ps1 -IsTagBuild ([System.Convert]::ToBoolean($env:APPVEYOR_REPO_TAG))
+  - ps: .\build.appveyor.ps1
   
 test: false
 artifacts:
