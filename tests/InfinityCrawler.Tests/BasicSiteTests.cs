@@ -37,15 +37,7 @@ namespace InfinityCrawler.Tests
 		public async Task CrawledLinksOnIndexPage()
 		{
 			var result = await GetCrawlResult();
-			var uri = new Uri("http://localhost/malformed.html");
-			Assert.IsTrue(result.CrawledUris.Any(c => c.Location == uri));
-		}
-
-		[TestMethod]
-		public async Task FoundLinkFromMalformedPaged()
-		{
-			var result = await GetCrawlResult();
-			var uri = new Uri("http://localhost/malformed-child.html");
+			var uri = new Uri("http://localhost/basic-page.html");
 			Assert.IsTrue(result.CrawledUris.Any(c => c.Location == uri));
 		}
 
