@@ -4,12 +4,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using InfinityCrawler.Processing.Requests;
 using InfinityCrawler.Tests.TestSite;
 
 namespace InfinityCrawler.Tests.Benchmarks
 {
-	[CoreJob, ClrJob(baseline: true)]
+	[SimpleJob(RuntimeMoniker.NetCoreApp21), SimpleJob(RuntimeMoniker.Net461, baseline: true)]
 	[MemoryDiagnoser]
 	public class BasicSiteCrawlBenchmark
 	{
