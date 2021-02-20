@@ -75,7 +75,7 @@ namespace InfinityCrawler.Processing.Requests
 							CancellationToken = cancellationToken
 						};
 
-						Logger?.LogDebug($"Request #{requestContext.RequestNumber} ({requestUri}) starting with a {requestStartDelay}ms delay");
+						Logger?.LogDebug($"Request #{requestContext.RequestNumber} ({requestUri}) starting with a {requestStartDelay}ms delay.");
 
 						var task = PerformRequestAsync(httpClient, responseAction, requestContext);
 
@@ -153,6 +153,8 @@ namespace InfinityCrawler.Processing.Requests
 
 					context.CancellationToken.ThrowIfCancellationRequested();
 
+					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms.");
+
 					await responseAction(new RequestResult
 					{
 						RequestUri = context.RequestUri,
@@ -161,8 +163,6 @@ namespace InfinityCrawler.Processing.Requests
 						ResponseMessage = response,
 						ElapsedTime = context.Timer.Elapsed
 					});
-
-					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms.");
 				}
 			}
 			catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
@@ -173,6 +173,9 @@ namespace InfinityCrawler.Processing.Requests
 			{
 				context.Timer.Stop();
 
+				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms.");
+				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
+
 				await responseAction(new RequestResult
 				{
 					RequestUri = context.RequestUri,
@@ -181,9 +184,6 @@ namespace InfinityCrawler.Processing.Requests
 					ElapsedTime = context.Timer.Elapsed,
 					Exception = ex
 				});
-
-				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms.");
-				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
 			}
 		}
 	}
