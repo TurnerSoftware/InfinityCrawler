@@ -141,9 +141,11 @@ namespace InfinityCrawler.Tests
 			Assert.AreEqual(CrawlStatus.MaxRedirects, crawledUri.Status);
 			Assert.AreEqual(3, crawledUri.RedirectChain.Count);
 		}
-		
-		[TestMethod]
-		public async Task MaximumPagesCrawledFollowed()
+
+		[DataRow(2)]
+		[DataRow(4)]
+		[DataTestMethod]
+		public async Task MaximumPagesCrawledFollowed(int maxPages)
 		{
 			var crawler = GetTestSiteCrawler(new SiteContext
 			{
@@ -155,13 +157,9 @@ namespace InfinityCrawler.Tests
 				RequestProcessorOptions = GetNoDelayRequestProcessorOptions()
 			};
 
-			settings.MaxNumberOfPagesToCrawl = 4;
+			settings.MaxNumberOfPagesToCrawl = maxPages;
 			var result = await crawler.Crawl(new Uri("http://localhost/"), settings);
-			Assert.AreEqual(4, result.CrawledUris.Count());
-
-			settings.MaxNumberOfPagesToCrawl = 2;
-			result = await crawler.Crawl(new Uri("http://localhost/"), settings);
-			Assert.AreEqual(2, result.CrawledUris.Count());
+			Assert.AreEqual(maxPages, result.CrawledUris.Count());
 		}
 		
 		[TestMethod]
