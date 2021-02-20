@@ -98,6 +98,7 @@ namespace InfinityCrawler.Internal
 					var robotsPageDefinition = RobotsPageParser.FromRules(content.PageRobotRules);
 					if (!robotsPageDefinition.CanIndex(Settings.UserAgent))
 					{
+						Logger?.LogDebug($"Result content for {requestUri} has been blocked by an in-page Robots rule.");
 						AddResult(new CrawledUri
 						{
 							Location = crawlState.Location,
@@ -140,13 +141,13 @@ namespace InfinityCrawler.Internal
 			{
 				if (!(requestUri.Host == BaseUri.Host || Settings.HostAliases.Contains(requestUri.Host)))
 				{
-					Logger?.LogDebug($"{requestUri.Host} is not in the list of allowed hosts.");
+					Logger?.LogDebug($"Request containing host {requestUri.Host} is not in the list of allowed hosts. This request will be ignored.");
 					return;
 				}
 			}
 			else if (requestUri.Host != BaseUri.Host)
 			{
-				Logger?.LogDebug($"{requestUri.Host} doesn't match the base host.");
+				Logger?.LogDebug($"Request containing host {requestUri.Host} doesn't match the base host. This request will be ignored.");
 				return;
 			}
 
@@ -155,7 +156,7 @@ namespace InfinityCrawler.Internal
 				var expectedCrawlCount = CrawledUris.Count + Settings.RequestProcessor.PendingRequests;
 				if (expectedCrawlCount == Settings.MaxNumberOfPagesToCrawl)
 				{
-					Logger?.LogDebug($"Page crawl limit blocks adding request for {requestUri}.");
+					Logger?.LogDebug($"Page crawl limit blocks adding request for {requestUri}. This request will be ignored.");
 					return;
 				}
 			}
@@ -172,7 +173,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Requests.Count() == Settings.NumberOfRetries)
 				{
-					Logger?.LogDebug($"{requestUri} has hit the maximum retry limit ({Settings.NumberOfRetries}).");
+					Logger?.LogDebug($"Request for {requestUri} has hit the maximum retry limit ({Settings.NumberOfRetries}).");
 					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
@@ -185,7 +186,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Redirects != null && crawlState.Redirects.Count == Settings.MaxNumberOfRedirects)
 				{
-					Logger?.LogDebug($"{requestUri} has hit the maximum redirect limit ({Settings.MaxNumberOfRedirects}).");
+					Logger?.LogDebug($"Request for {requestUri} has hit the maximum redirect limit ({Settings.MaxNumberOfRedirects}).");
 					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
@@ -198,11 +199,12 @@ namespace InfinityCrawler.Internal
 
 			if (RobotsFile.IsAllowedAccess(requestUri, Settings.UserAgent))
 			{
+				Logger?.LogDebug($"Added {requestUri} to request queue.");
 				Settings.RequestProcessor.Add(requestUri);
 			}
 			else
 			{
-				Logger?.LogDebug($"{requestUri} has been blocked by the Robots.txt file.");
+				Logger?.LogDebug($"Request for {requestUri} has been blocked by the Robots.txt file.");
 				AddResult(new CrawledUri
 				{
 					Location = requestUri,
@@ -276,6 +278,7 @@ namespace InfinityCrawler.Internal
 						{
 							//On any other error, just save what we have seen and move on
 							//Consider the content of the request irrelevant
+							Logger?.LogDebug($"Request for {crawlState.Location} completed with an error ({crawlRequest.StatusCode}).");
 							AddResult(crawlState.Location, null);
 						}
 					}
@@ -283,6 +286,8 @@ namespace InfinityCrawler.Internal
 				Settings.RequestProcessorOptions,
 				cancellationToken
 			);
+
+			Logger?.LogDebug($"Completed crawling {CrawledUris.Count} pages.");
 
 			return CrawledUris.ToArray();
 		}
