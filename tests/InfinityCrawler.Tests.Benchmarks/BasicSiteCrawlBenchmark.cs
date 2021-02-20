@@ -10,7 +10,7 @@ using InfinityCrawler.Tests.TestSite;
 
 namespace InfinityCrawler.Tests.Benchmarks
 {
-	[SimpleJob(RuntimeMoniker.NetCoreApp21), SimpleJob(RuntimeMoniker.Net461, baseline: true)]
+	[SimpleJob(RuntimeMoniker.NetCoreApp50)]
 	[MemoryDiagnoser]
 	public class BasicSiteCrawlBenchmark
 	{

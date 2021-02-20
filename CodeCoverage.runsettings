@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>  
+<RunSettings>  
+  <DataCollectionRunSettings>  
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Exclude>[InfinityCrawler.Tests]*</Exclude>
+          <Include>[InfinityCrawler]*</Include>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute</ExcludeByAttribute>
+          <UseSourceLink>true</UseSourceLink>
+          <SkipAutoProps>true</SkipAutoProps>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>  
+  </DataCollectionRunSettings>  
+</RunSettings>
