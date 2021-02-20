@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Text;
 using System.Threading;
@@ -216,7 +217,7 @@ namespace InfinityCrawler.Internal
 		}
 
 		public async Task<IEnumerable<CrawledUri>> ProcessAsync(
-			Func<RequestResult, UriCrawlState, Task> responseAction,
+			Func<RequestResult, UriCrawlState, Task> responseSuccessAction,
 			CancellationToken cancellationToken = default
 		)
 		{
@@ -241,7 +242,42 @@ namespace InfinityCrawler.Internal
 					}
 					else
 					{
-						await responseAction(requestResult, crawlState);
+						var response = requestResult.ResponseMessage;
+
+						var crawlRequest = new CrawlRequest
+						{
+							RequestStart = requestResult.RequestStart,
+							ElapsedTime = requestResult.ElapsedTime,
+							StatusCode = response.StatusCode,
+							IsSuccessfulStatus = response.IsSuccessStatusCode
+						};
+						crawlState.Requests.Add(crawlRequest);
+
+						var redirectStatusCodes = new[]
+						{
+							HttpStatusCode.MovedPermanently,
+							HttpStatusCode.Redirect,
+							HttpStatusCode.TemporaryRedirect
+						};
+						if (redirectStatusCodes.Contains(crawlRequest.StatusCode.Value))
+						{
+							AddRedirect(crawlState.Location, response.Headers.Location);
+						}
+						else if (crawlRequest.IsSuccessfulStatus)
+						{
+							await responseSuccessAction(requestResult, crawlState);
+						}
+						else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
+						{
+							//On server errors, try to crawl the page again later
+							AddRequest(crawlState.Location);
+						}
+						else
+						{
+							//On any other error, just save what we have seen and move on
+							//Consider the content of the request irrelevant
+							AddResult(crawlState.Location, null);
+						}
 					}
 				},
 				Settings.RequestProcessorOptions,

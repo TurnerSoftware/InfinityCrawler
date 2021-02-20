@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
@@ -65,47 +64,13 @@ namespace InfinityCrawler
 			result.CrawledUris = await crawlRunner.ProcessAsync(async (requestResult, crawlState) =>
 			{
 				var response = requestResult.ResponseMessage;
-
-				var crawlRequest = new CrawlRequest
+				using (var contentStream = await response.Content.ReadAsStreamAsync())
 				{
-					RequestStart = requestResult.RequestStart,
-					ElapsedTime = requestResult.ElapsedTime,
-					StatusCode = response.StatusCode,
-					IsSuccessfulStatus = response.IsSuccessStatusCode
-				};
-				crawlState.Requests.Add(crawlRequest);
-
-				var redirectStatusCodes = new[]
-				{
-					HttpStatusCode.MovedPermanently,
-					HttpStatusCode.Redirect,
-					HttpStatusCode.TemporaryRedirect
-				};
-				if (redirectStatusCodes.Contains(crawlRequest.StatusCode.Value))
-				{
-					crawlRunner.AddRedirect(crawlState.Location, response.Headers.Location);
-				}
-				else if (crawlRequest.IsSuccessfulStatus)
-				{
-					using (var contentStream = await response.Content.ReadAsStreamAsync())
-					{
-						var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
-						var content = settings.ContentProcessor.Parse(crawlState.Location, headers, contentStream);
-						contentStream.Seek(0, SeekOrigin.Begin);
-						content.RawContent = await new StreamReader(contentStream).ReadToEndAsync();
-						crawlRunner.AddResult(crawlState.Location, content);
-					}
-				}
-				else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
-				{
-					//On server errors, try to crawl the page again later
-					crawlRunner.AddRequest(crawlState.Location);
-				}
-				else
-				{
-					//On any other error, just save what we have seen and move on
-					//Consider the content of the request irrelevant
-					crawlRunner.AddResult(crawlState.Location, null);
+					var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
+					var content = settings.ContentProcessor.Parse(crawlState.Location, headers, contentStream);
+					contentStream.Seek(0, SeekOrigin.Begin);
+					content.RawContent = await new StreamReader(contentStream).ReadToEndAsync();
+					crawlRunner.AddResult(crawlState.Location, content);
 				}
 			});
 
