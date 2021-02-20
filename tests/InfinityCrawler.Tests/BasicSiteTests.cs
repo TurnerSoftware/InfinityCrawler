@@ -161,7 +161,7 @@ namespace InfinityCrawler.Tests
 			var result = await crawler.Crawl(new Uri("http://localhost/"), settings);
 			Assert.AreEqual(maxPages, result.CrawledUris.Count());
 		}
-		
+
 		[TestMethod]
 		public async Task AutoRetryOnFailure()
 		{
@@ -183,10 +183,10 @@ namespace InfinityCrawler.Tests
 				}
 			};
 
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-1"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-2"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-3"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-4"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-1"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-2"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-3"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-4"));
 
 			var results = await crawler.Crawl(new Uri("http://localhost/"), settings);
 			var delayedCrawls = results.CrawledUris.Where(c => c.Location.PathAndQuery.Contains("delay")).ToArray();
