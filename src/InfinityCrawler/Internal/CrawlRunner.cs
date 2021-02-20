@@ -154,7 +154,7 @@ namespace InfinityCrawler.Internal
 				var expectedCrawlCount = CrawledUris.Count + Settings.RequestProcessor.PendingRequests;
 				if (expectedCrawlCount == Settings.MaxNumberOfPagesToCrawl)
 				{
-					Logger?.LogDebug($"Page crawl limit blocks adding request for {requestUri}");
+					Logger?.LogDebug($"Page crawl limit blocks adding request for {requestUri}.");
 					return;
 				}
 			}
@@ -171,6 +171,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Requests.Count() == Settings.NumberOfRetries)
 				{
+					Logger?.LogDebug($"{requestUri} has hit the maximum retry limit ({Settings.NumberOfRetries}).");
 					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
@@ -183,6 +184,7 @@ namespace InfinityCrawler.Internal
 
 				if (crawlState.Redirects != null && crawlState.Redirects.Count == Settings.MaxNumberOfRedirects)
 				{
+					Logger?.LogDebug($"{requestUri} has hit the maximum redirect limit ({Settings.MaxNumberOfRedirects}).");
 					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
@@ -199,6 +201,7 @@ namespace InfinityCrawler.Internal
 			}
 			else
 			{
+				Logger?.LogDebug($"{requestUri} has been blocked by the Robots.txt file.");
 				AddResult(new CrawledUri
 				{
 					Location = requestUri,

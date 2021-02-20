@@ -74,9 +74,10 @@ namespace InfinityCrawler.Processing.Requests
 							RequestTimeout = options.RequestTimeout,
 							CancellationToken = cancellationToken
 						};
-						var task = PerformRequestAsync(httpClient, responseAction, requestContext);
 
-						Logger?.LogDebug($"Request #{requestContext.RequestNumber} started with {requestStartDelay}ms delay");
+						Logger?.LogDebug($"Request #{requestContext.RequestNumber} ({requestUri}) starting with a {requestStartDelay}ms delay");
+
+						var task = PerformRequestAsync(httpClient, responseAction, requestContext);
 
 						activeRequests.TryAdd(task, requestContext);
 						requestCount++;
@@ -110,7 +111,7 @@ namespace InfinityCrawler.Processing.Requests
 					{
 						successesSinceLastThrottle = 0;
 						currentBackoff += (int)options.ThrottlingRequestBackoff.TotalMilliseconds;
-						Logger?.LogInformation($"Increased backoff to {currentBackoff}ms");
+						Logger?.LogInformation($"Increased backoff to {currentBackoff}ms.");
 					}
 					else if (currentBackoff > 0)
 					{
@@ -120,13 +121,13 @@ namespace InfinityCrawler.Processing.Requests
 							var newBackoff = currentBackoff - options.ThrottlingRequestBackoff.TotalMilliseconds;
 							currentBackoff = Math.Max(0, (int)newBackoff);
 							successesSinceLastThrottle = 0;
-							Logger?.LogInformation($"Decreased backoff to {currentBackoff}ms");
+							Logger?.LogInformation($"Decreased backoff to {currentBackoff}ms.");
 						}
 					}
 				}
 			}
 
-			Logger?.LogDebug($"Completed processing {requestCount} requests");
+			Logger?.LogDebug($"Completed processing {requestCount} requests.");
 		}
 
 		private async Task PerformRequestAsync(HttpClient httpClient, Func<RequestResult, Task> responseAction, RequestContext context)
@@ -161,12 +162,12 @@ namespace InfinityCrawler.Processing.Requests
 						ElapsedTime = context.Timer.Elapsed
 					});
 
-					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms");
+					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms.");
 				}
 			}
 			catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
 			{
-				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled");
+				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled.");
 			}
 			catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
 			{
@@ -181,7 +182,7 @@ namespace InfinityCrawler.Processing.Requests
 					Exception = ex
 				});
 
-				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms");
+				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms.");
 				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
 			}
 		}
