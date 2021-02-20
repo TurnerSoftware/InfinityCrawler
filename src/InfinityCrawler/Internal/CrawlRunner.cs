@@ -66,7 +66,7 @@ namespace InfinityCrawler.Internal
 			AddRequest(uriWithoutFragment, false);
 		}
 
-		public void AddRedirect(Uri requestUri, Uri redirectUri)
+		private void AddRedirect(Uri requestUri, Uri redirectUri)
 		{
 			if (UriCrawlStates.TryRemove(requestUri, out var crawlState))
 			{
@@ -93,21 +93,21 @@ namespace InfinityCrawler.Internal
 		{
 			if (UriCrawlStates.TryGetValue(requestUri, out var crawlState))
 			{
-				if (content != null)
+				var robotsPageDefinition = RobotsPageParser.FromRules(content.PageRobotRules);
+				if (!robotsPageDefinition.CanIndex(Settings.UserAgent))
 				{
-					var robotsPageDefinition = RobotsPageParser.FromRules(content.PageRobotRules);
-					if (!robotsPageDefinition.CanIndex(Settings.UserAgent))
+					Logger?.LogDebug($"Result content for {requestUri} has been blocked by an in-page Robots rule.");
+					AddResult(new CrawledUri
 					{
-						Logger?.LogDebug($"Result content for {requestUri} has been blocked by an in-page Robots rule.");
-						AddResult(new CrawledUri
-						{
-							Location = crawlState.Location,
-							Status = CrawlStatus.RobotsBlocked,
-							Requests = crawlState.Requests,
-							RedirectChain = crawlState.Redirects
-						});
-						return;
-					}
+						Location = crawlState.Location,
+						Status = CrawlStatus.RobotsBlocked,
+						Requests = crawlState.Requests,
+						RedirectChain = crawlState.Redirects
+					});
+				}
+				else
+				{
+					Logger?.LogDebug($"Result for {requestUri} has completed successfully with content.");
 
 					if (robotsPageDefinition.CanFollowLinks(Settings.UserAgent))
 					{
@@ -116,16 +116,16 @@ namespace InfinityCrawler.Internal
 							AddLink(crawlLink);
 						}
 					}
-				}
 
-				AddResult(new CrawledUri
-				{
-					Location = crawlState.Location,
-					Status = CrawlStatus.Crawled,
-					RedirectChain = crawlState.Redirects,
-					Requests = crawlState.Requests,
-					Content = content
-				});
+					AddResult(new CrawledUri
+					{
+						Location = crawlState.Location,
+						Status = CrawlStatus.Crawled,
+						RedirectChain = crawlState.Redirects,
+						Requests = crawlState.Requests,
+						Content = content
+					});
+				}
 			}
 		}
 
@@ -235,6 +235,7 @@ namespace InfinityCrawler.Internal
 					if (requestResult.ResponseMessage == null)
 					{
 						//Retry failed requests
+						Logger?.LogDebug($"An exception occurred while requesting {crawlState.Location}. This URL will be added to the request queue to be attempted again later.");
 						crawlState.Requests.Add(new CrawlRequest
 						{
 							RequestStart = requestResult.RequestStart,
@@ -263,6 +264,7 @@ namespace InfinityCrawler.Internal
 						};
 						if (redirectStatusCodes.Contains(crawlRequest.StatusCode.Value))
 						{
+							Logger?.LogDebug($"Result for {crawlState.Location} was a redirect ({response.Headers.Location}). This URL will be added to the request queue.");
 							AddRedirect(crawlState.Location, response.Headers.Location);
 						}
 						else if (crawlRequest.IsSuccessfulStatus)
@@ -272,14 +274,21 @@ namespace InfinityCrawler.Internal
 						else if ((int)crawlRequest.StatusCode >= 500 && (int)crawlRequest.StatusCode <= 599)
 						{
 							//On server errors, try to crawl the page again later
+							Logger?.LogDebug($"Result for {crawlState.Location} was unexpected ({crawlRequest.StatusCode}). This URL will be added to the request queue to be attempted again later.");
 							AddRequest(crawlState.Location);
 						}
 						else
 						{
 							//On any other error, just save what we have seen and move on
 							//Consider the content of the request irrelevant
-							Logger?.LogDebug($"Request for {crawlState.Location} completed with an error ({crawlRequest.StatusCode}).");
-							AddResult(crawlState.Location, null);
+							Logger?.LogDebug($"Result for {crawlState.Location} was unexpected ({crawlRequest.StatusCode}). No further requests will be attempted.");
+							AddResult(new CrawledUri
+							{
+								Location = crawlState.Location,
+								Status = CrawlStatus.Crawled,
+								RedirectChain = crawlState.Redirects,
+								Requests = crawlState.Requests
+							});
 						}
 					}
 				},
