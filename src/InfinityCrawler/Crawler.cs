@@ -55,7 +55,7 @@ namespace InfinityCrawler
 
 			//Use any links referred to by the sitemap as a starting point
 			var urisFromSitemap = (await new SitemapQuery(HttpClient)
-				.GetAllSitemapsForDomain(siteUri.Host))
+				.GetAllSitemapsForDomainAsync(siteUri.Host))
 				.SelectMany(s => s.Urls.Select(u => u.Location).Distinct());
 			foreach (var uri in urisFromSitemap)
 			{
