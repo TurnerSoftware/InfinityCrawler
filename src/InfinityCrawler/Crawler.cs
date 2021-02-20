@@ -63,13 +63,12 @@ namespace InfinityCrawler
 
 			result.CrawledUris = await crawlRunner.ProcessAsync(async (requestResult, crawlState) =>
 			{
-				var response = requestResult.ResponseMessage;
-				using (var contentStream = await response.Content.ReadAsStreamAsync())
+				using (requestResult.Content)
 				{
-					var headers = new CrawlHeaders(response.Headers, response.Content.Headers);
-					var content = settings.ContentProcessor.Parse(crawlState.Location, headers, contentStream);
-					contentStream.Seek(0, SeekOrigin.Begin);
-					content.RawContent = await new StreamReader(contentStream).ReadToEndAsync();
+					var headers = new CrawlHeaders(requestResult.ResponseHeaders, requestResult.ContentHeaders);
+					var content = settings.ContentProcessor.Parse(crawlState.Location, headers, requestResult.Content);
+					requestResult.Content.Seek(0, SeekOrigin.Begin);
+					content.RawContent = await new StreamReader(requestResult.Content).ReadToEndAsync();
 					crawlRunner.AddResult(crawlState.Location, content);
 				}
 			});

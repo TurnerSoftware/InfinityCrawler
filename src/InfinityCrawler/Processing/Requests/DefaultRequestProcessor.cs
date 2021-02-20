@@ -39,7 +39,7 @@ namespace InfinityCrawler.Processing.Requests
 			}
 
 			var random = new Random();
-			var activeRequests = new ConcurrentDictionary<Task, RequestContext>(options.MaxNumberOfSimultaneousRequests, options.MaxNumberOfSimultaneousRequests);
+			var activeRequests = new ConcurrentDictionary<Task<RequestResult>, RequestContext>(options.MaxNumberOfSimultaneousRequests, options.MaxNumberOfSimultaneousRequests);
 
 			var currentBackoff = 0;
 			var successesSinceLastThrottle = 0;
@@ -77,7 +77,7 @@ namespace InfinityCrawler.Processing.Requests
 
 						Logger?.LogDebug($"Request #{requestContext.RequestNumber} ({requestUri}) starting with a {requestStartDelay}ms delay.");
 
-						var task = PerformRequestAsync(httpClient, responseAction, requestContext);
+						var task = PerformRequestAsync(httpClient, requestContext);
 
 						activeRequests.TryAdd(task, requestContext);
 						requestCount++;
@@ -90,6 +90,8 @@ namespace InfinityCrawler.Processing.Requests
 				}
 
 				await Task.WhenAny(activeRequests.Keys).ConfigureAwait(false);
+
+				cancellationToken.ThrowIfCancellationRequested();
 
 				var completedRequests = activeRequests.Keys.Where(t => t.IsCompleted);
 				foreach (var completedRequest in completedRequests)
@@ -104,6 +106,8 @@ namespace InfinityCrawler.Processing.Requests
 						//Keep the existing stack trace when re-throwing
 						ExceptionDispatchInfo.Capture(aggregateException.InnerException).Throw();
 					}
+
+					await responseAction(completedRequest.Result);
 
 					//Manage the throttling based on timeouts and successes
 					var throttlePoint = options.TimeoutBeforeThrottle;
@@ -130,7 +134,7 @@ namespace InfinityCrawler.Processing.Requests
 			Logger?.LogDebug($"Completed processing {requestCount} requests.");
 		}
 
-		private async Task PerformRequestAsync(HttpClient httpClient, Func<RequestResult, Task> responseAction, RequestContext context)
+		private async Task<RequestResult> PerformRequestAsync(HttpClient httpClient, RequestContext context)
 		{
 			if (context.RequestStartDelay > 0)
 			{
@@ -146,7 +150,9 @@ namespace InfinityCrawler.Processing.Requests
 				var combinedToken = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, timeoutToken).Token;
 				using (var response = await httpClient.GetAsync(context.RequestUri, combinedToken))
 				{
-					await response.Content.LoadIntoBufferAsync();
+					var contentStream = new MemoryStream();
+					await response.Content.CopyToAsync(contentStream);
+					contentStream.Seek(0, SeekOrigin.Begin);
 
 					//We only want to time the request, not the handling of the response
 					context.Timer.Stop();
@@ -155,19 +161,23 @@ namespace InfinityCrawler.Processing.Requests
 
 					Logger?.LogDebug($"Request #{context.RequestNumber} completed successfully in {context.Timer.ElapsedMilliseconds}ms.");
 
-					await responseAction(new RequestResult
+					return new RequestResult
 					{
 						RequestUri = context.RequestUri,
 						RequestStart = requestStart,
 						RequestStartDelay = context.RequestStartDelay,
-						ResponseMessage = response,
+						StatusCode = response.StatusCode,
+						ResponseHeaders = response.Headers,
+						ContentHeaders = response.Content.Headers,
+						Content = contentStream,
 						ElapsedTime = context.Timer.Elapsed
-					});
+					};
 				}
 			}
 			catch (OperationCanceledException) when (context.CancellationToken.IsCancellationRequested)
 			{
 				Logger?.LogDebug($"Request #{context.RequestNumber} cancelled.");
+				return null;
 			}
 			catch (Exception ex) when (ex is HttpRequestException || ex is OperationCanceledException)
 			{
@@ -176,14 +186,14 @@ namespace InfinityCrawler.Processing.Requests
 				Logger?.LogDebug($"Request #{context.RequestNumber} completed with error in {context.Timer.ElapsedMilliseconds}ms.");
 				Logger?.LogTrace(ex, $"Request #{context.RequestNumber} Exception: {ex.Message}");
 
-				await responseAction(new RequestResult
+				return new RequestResult
 				{
 					RequestUri = context.RequestUri,
 					RequestStart = requestStart,
 					RequestStartDelay = context.RequestStartDelay,
 					ElapsedTime = context.Timer.Elapsed,
 					Exception = ex
-				});
+				};
 			}
 		}
 	}

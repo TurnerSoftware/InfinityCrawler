@@ -141,9 +141,11 @@ namespace InfinityCrawler.Tests
 			Assert.AreEqual(CrawlStatus.MaxRedirects, crawledUri.Status);
 			Assert.AreEqual(3, crawledUri.RedirectChain.Count);
 		}
-		
-		[TestMethod]
-		public async Task MaximumPagesCrawledFollowed()
+
+		[DataRow(2)]
+		[DataRow(4)]
+		[DataTestMethod]
+		public async Task MaximumPagesCrawledFollowed(int maxPages)
 		{
 			var crawler = GetTestSiteCrawler(new SiteContext
 			{
@@ -155,15 +157,11 @@ namespace InfinityCrawler.Tests
 				RequestProcessorOptions = GetNoDelayRequestProcessorOptions()
 			};
 
-			settings.MaxNumberOfPagesToCrawl = 4;
+			settings.MaxNumberOfPagesToCrawl = maxPages;
 			var result = await crawler.Crawl(new Uri("http://localhost/"), settings);
-			Assert.AreEqual(4, result.CrawledUris.Count());
-
-			settings.MaxNumberOfPagesToCrawl = 2;
-			result = await crawler.Crawl(new Uri("http://localhost/"), settings);
-			Assert.AreEqual(2, result.CrawledUris.Count());
+			Assert.AreEqual(maxPages, result.CrawledUris.Count());
 		}
-		
+
 		[TestMethod]
 		public async Task AutoRetryOnFailure()
 		{
@@ -185,10 +183,10 @@ namespace InfinityCrawler.Tests
 				}
 			};
 
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-1"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-2"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-3"));
-			settings.RequestProcessor.Add(new Uri("http://localhost/delay/300/300ms-delay-4"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-1"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-2"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-3"));
+			settings.RequestProcessor.Add(new Uri("http://localhost/delay/500/500ms-delay-4"));
 
 			var results = await crawler.Crawl(new Uri("http://localhost/"), settings);
 			var delayedCrawls = results.CrawledUris.Where(c => c.Location.PathAndQuery.Contains("delay")).ToArray();

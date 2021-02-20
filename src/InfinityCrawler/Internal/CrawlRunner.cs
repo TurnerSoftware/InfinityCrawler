@@ -50,7 +50,7 @@ namespace InfinityCrawler.Internal
 			}.Uri;
 		}
 
-		public void AddLink(CrawlLink crawlLink)
+		private void AddLink(CrawlLink crawlLink)
 		{
 			if (crawlLink.Relationship != null && crawlLink.Relationship.Equals("nofollow", StringComparison.InvariantCultureIgnoreCase))
 			{
@@ -109,14 +109,6 @@ namespace InfinityCrawler.Internal
 				{
 					Logger?.LogDebug($"Result for {requestUri} has completed successfully with content.");
 
-					if (robotsPageDefinition.CanFollowLinks(Settings.UserAgent))
-					{
-						foreach (var crawlLink in content.Links)
-						{
-							AddLink(crawlLink);
-						}
-					}
-
 					AddResult(new CrawledUri
 					{
 						Location = crawlState.Location,
@@ -125,6 +117,14 @@ namespace InfinityCrawler.Internal
 						Requests = crawlState.Requests,
 						Content = content
 					});
+
+					if (robotsPageDefinition.CanFollowLinks(Settings.UserAgent))
+					{
+						foreach (var crawlLink in content.Links)
+						{
+							AddLink(crawlLink);
+						}
+					}
 				}
 			}
 		}
@@ -232,7 +232,7 @@ namespace InfinityCrawler.Internal
 						Location = requestResult.RequestUri
 					});
 
-					if (requestResult.ResponseMessage == null)
+					if (requestResult.Exception != null)
 					{
 						//Retry failed requests
 						Logger?.LogDebug($"An exception occurred while requesting {crawlState.Location}. This URL will be added to the request queue to be attempted again later.");
@@ -245,14 +245,12 @@ namespace InfinityCrawler.Internal
 					}
 					else
 					{
-						var response = requestResult.ResponseMessage;
-
 						var crawlRequest = new CrawlRequest
 						{
 							RequestStart = requestResult.RequestStart,
 							ElapsedTime = requestResult.ElapsedTime,
-							StatusCode = response.StatusCode,
-							IsSuccessfulStatus = response.IsSuccessStatusCode
+							StatusCode = requestResult.StatusCode,
+							IsSuccessfulStatus = (int)requestResult.StatusCode is >= 200 and <= 299
 						};
 						crawlState.Requests.Add(crawlRequest);
 
@@ -264,8 +262,8 @@ namespace InfinityCrawler.Internal
 						};
 						if (redirectStatusCodes.Contains(crawlRequest.StatusCode.Value))
 						{
-							Logger?.LogDebug($"Result for {crawlState.Location} was a redirect ({response.Headers.Location}). This URL will be added to the request queue.");
-							AddRedirect(crawlState.Location, response.Headers.Location);
+							Logger?.LogDebug($"Result for {crawlState.Location} was a redirect ({requestResult.ResponseHeaders.Location}). This URL will be added to the request queue.");
+							AddRedirect(crawlState.Location, requestResult.ResponseHeaders.Location);
 						}
 						else if (crawlRequest.IsSuccessfulStatus)
 						{
