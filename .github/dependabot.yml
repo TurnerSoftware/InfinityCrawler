@@ -4,15 +4,4 @@ updates:
   directory: "/"
   schedule:
     interval: daily
-    time: "19:30"
   open-pull-requests-limit: 10
-  ignore:
-  - dependency-name: Microsoft.AspNetCore.TestHost
-    versions:
-    - ">= 3.a, < 4"
-  - dependency-name: Microsoft.AspNetCore.TestHost
-    versions:
-    - ">= 5.a, < 6"
-  - dependency-name: Microsoft.Extensions.Logging.TraceSource
-    versions:
-    - 5.0.0
