@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.12" />
     <PackageReference Include="Microsoft.Extensions.Logging.TraceSource" Version="3.1.12" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="2.2.6" />
+    <PackageReference Include="MSTest.TestAdapter" Version="2.2.7" />
     <PackageReference Include="MSTest.TestFramework" Version="2.2.6" />
     <PackageReference Include="coverlet.collector" Version="3.1.0">
       <PrivateAssets>all</PrivateAssets>
