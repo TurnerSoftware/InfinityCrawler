@@ -19,7 +19,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
     <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.18" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.19" />
   </ItemGroup>
 
 </Project>
