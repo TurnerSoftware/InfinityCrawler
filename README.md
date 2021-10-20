@@ -1,9 +1,13 @@
+<div align="center">
+
+![Icon](images/icon.png)
 # Infinity Crawler
 A simple but powerful web crawler library in C#
 
 [![AppVeyor](https://img.shields.io/appveyor/ci/Turnerj/infinitycrawler/master.svg)](https://ci.appveyor.com/project/Turnerj/infinitycrawler)
 [![Codecov](https://img.shields.io/codecov/c/github/turnersoftware/infinitycrawler/master.svg)](https://codecov.io/gh/TurnerSoftware/infinitycrawler)
 [![NuGet](https://img.shields.io/nuget/v/InfinityCrawler.svg)](https://www.nuget.org/packages/InfinityCrawler)
+</div>
 
 ## Features
 - Obeys robots.txt (crawl delay & allow/disallow)
@@ -12,6 +16,14 @@ A simple but powerful web crawler library in C#
 - Built around a parallel task `async`/`await` system
 - Swappable request and content processors, allowing greater customisation
 - Auto-throttling (see below)
+
+## Licensing and Support
+
+Infinity Crawler is licensed under the MIT license. It is free to use in personal and commercial projects.
+
+There are [support plans](https://turnersoftware.com.au/support-plans) available that cover all active [Turner Software OSS projects](https://github.com/TurnerSoftware).
+Support plans provide private email support, expert usage advice for our projects, priority bug fixes and more.
+These support plans help fund our OSS commitments to provide better software for everyone.
 
 ## Polite Crawling
 The crawler is built around fast but "polite" crawling of website.

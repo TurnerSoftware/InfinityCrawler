@@ -7,13 +7,10 @@
 
     <PackageId>$(AssemblyName)</PackageId>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <PackageLicenseFile>License.txt</PackageLicenseFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/TurnerSoftware/InfinityCrawler</PackageProjectUrl>
     <PackageBaseTags>crawler;robot;spider</PackageBaseTags>
-    
-    <RepositoryUrl>https://github.com/TurnerSoftware/InfinityCrawler.git</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryBranch>master</RepositoryBranch>
 
     <!-- SourceLink Support -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
@@ -28,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\License.txt" Pack="true" PackagePath="$(PackageLicenseFile)"/>
+    <None Include="..\..\images\$(PackageIcon)" Pack="true" PackagePath="/" />
   </ItemGroup>
 
 </Project>
