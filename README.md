@@ -2,10 +2,10 @@
 
 ![Icon](images/icon.png)
 # Infinity Crawler
-A simple but powerful web crawler library in C#
+A simple but powerful web crawler library for .NET 
 
-[![AppVeyor](https://img.shields.io/appveyor/ci/Turnerj/infinitycrawler/master.svg)](https://ci.appveyor.com/project/Turnerj/infinitycrawler)
-[![Codecov](https://img.shields.io/codecov/c/github/turnersoftware/infinitycrawler/master.svg)](https://codecov.io/gh/TurnerSoftware/infinitycrawler)
+![Build](https://img.shields.io/github/workflow/status/TurnerSoftware/infinitycrawler/Build)
+[![Codecov](https://img.shields.io/codecov/c/github/turnersoftware/infinitycrawler/main.svg)](https://codecov.io/gh/TurnerSoftware/infinitycrawler)
 [![NuGet](https://img.shields.io/nuget/v/InfinityCrawler.svg)](https://www.nuget.org/packages/InfinityCrawler)
 </div>
 

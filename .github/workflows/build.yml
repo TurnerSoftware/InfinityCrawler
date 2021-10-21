@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request: 
   release:
     types: [ published ]
@@ -19,47 +19,9 @@ env:
 
 jobs:
 
-  version:
-    name: Identify build version
-    runs-on: ubuntu-latest
-    outputs:
-      BuildVersion: ${{steps.configureBuildVersion.outputs.BUILD_VERSION}}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Fetch all Git tags
-      run: git fetch --prune --unshallow --tags
-    - name: Configure build version
-      id: configureBuildVersion
-      run: |
-        $githubRunId = $env:GITHUB_RUN_ID;
-        $prNumber = $env:PR_NUMBER;
-        $gitSourceVersion = git describe --tags --abbrev=7 --always 2>$1;
-        $gitSourceVersionSplit = [regex]::split($gitSourceVersion, "-(?=\d+-\w+)");
-        $version = $(if($gitSourceVersionSplit.length -eq 1){"0.0.0"}else{$gitSourceVersionSplit[0]});
-        $commitsSinceTag = '0';
-        $commitHash = $gitSourceVersionSplit[0];
-        if ($gitSourceVersionSplit.length -eq 2) {
-            $gitMetadata = $gitSourceVersionSplit[1].split("-");
-            $commitsSinceTag = $gitMetadata[0];
-            $commitHash = $gitMetadata[1];
-        }
-        $buildMetadata = "$($commitHash)-$($githubRunId)";
-        $customSuffix = $(if($prNumber -ne ''){"-PR$($prNumber)"}elseif($commitsSinceTag -ne '0'){"-dev"});
-        echo "::set-output name=BUILD_VERSION::$($version)$($customSuffix)+$($buildMetadata)";
-      shell: pwsh
-      env:
-        PR_NUMBER: ${{github.event.number}}
-    - name: Print build version
-      run: echo ${{steps.configureBuildVersion.outputs.BUILD_VERSION}}
-
-
   build:
     name: Build ${{matrix.os}}
     runs-on: ${{matrix.os}}
-    needs: version
-    env:
-      BUILD_VERSION: ${{needs.version.outputs.BuildVersion}}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
@@ -81,11 +43,11 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build -c Release --no-restore /p:Version=${{env.BUILD_VERSION}}
+      run: dotnet build --no-restore -c Release
     - name: Test with Coverage
-      run: dotnet test --logger trx --results-directory ${{env.BUILD_ARTIFACT_PATH}}/coverage --collect "XPlat Code Coverage" --settings CodeCoverage.runsettings
+      run: dotnet test --no-restore --logger trx --results-directory ${{env.BUILD_ARTIFACT_PATH}}/coverage --collect "XPlat Code Coverage" --settings CodeCoverage.runsettings /p:SkipBuildVersioning=true
     - name: Pack
-      run: dotnet pack -c Release --no-build /p:Version=${{env.BUILD_VERSION}} /p:PackageOutputPath=${{env.BUILD_ARTIFACT_PATH}}
+      run: dotnet pack --no-build -c Release /p:PackageOutputPath=${{env.BUILD_ARTIFACT_PATH}}
     - name: Publish artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -115,14 +77,39 @@ jobs:
       with:
         name: coverage-report
         path: Cobertura.xml
-      
-  release:
-    name: Release
+
+  push-to-github-packages:
+    name: 'Push GitHub Packages'
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    environment:
+      name: 'GitHub Packages'
+      url: https://github.com/TurnerSoftware/InfinityCrawler/packages
+    permissions:
+      packages: write
     runs-on: ubuntu-latest
+    steps:
+      - name: 'Download build'
+        uses: actions/download-artifact@v2
+        with:
+          name: 'ubuntu-latest'
+      - name: 'Add NuGet source'
+        run: dotnet nuget add source https://nuget.pkg.github.com/TurnerSoftware/index.json --name GitHub --username Turnerj --password ${{secrets.GITHUB_TOKEN}} --store-password-in-clear-text
+      - name: 'Upload NuGet package'
+        run: dotnet nuget push *.nupkg --api-key ${{secrets.GH_PACKAGE_REGISTRY_API_KEY}} --source GitHub --skip-duplicate --no-symbols true
+
+  push-to-nuget:
+    name: 'Push NuGet Packages'
     needs: build
     if: github.event_name == 'release'
+    environment:
+      name: 'NuGet'
+      url: https://www.nuget.org/packages/InfinityCrawler
+    runs-on: ubuntu-latest
     steps:
-    - name: Download build
-      uses: actions/download-artifact@v2
-    - run: ls /ubuntu-latest
-    # TODO: Upload to NuGet & GitHub Packages
+      - name: 'Download build'
+        uses: actions/download-artifact@v2
+        with:
+          name: 'ubuntu-latest'
+      - name: 'Upload NuGet package and symbols'
+        run: dotnet nuget push *.nupkg --source https://api.nuget.org/v3/index.json --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}}
