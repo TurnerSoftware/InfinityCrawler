@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.41" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.12" />
     <PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.7.0" />
     <PackageReference Include="TurnerSoftware.SitemapTools" Version="0.6.0" />
