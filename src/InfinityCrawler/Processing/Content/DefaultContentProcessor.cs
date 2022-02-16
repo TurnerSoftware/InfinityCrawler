@@ -98,6 +98,12 @@ namespace InfinityCrawler.Processing.Content
 						continue;
 					}
 
+					if (anchorLocation.Scheme != Uri.UriSchemeHttp && anchorLocation.Scheme != Uri.UriSchemeHttps)
+					{
+						//Skip non-HTTP links
+						continue;
+					}
+
 					yield return new CrawlLink
 					{
 						Location = anchorLocation,
