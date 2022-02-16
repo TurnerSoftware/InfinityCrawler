@@ -15,6 +15,7 @@
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework) == 'netstandard2.0'">
+		<!-- This is the highest version that is .NET Standard 2.0 compatible -->
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.22" />
 	</ItemGroup>
 
