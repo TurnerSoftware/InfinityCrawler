@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
@@ -10,7 +7,7 @@ using InfinityCrawler.Tests.TestSite;
 
 namespace InfinityCrawler.Tests.Benchmarks
 {
-	[SimpleJob(RuntimeMoniker.NetCoreApp50)]
+	[SimpleJob(RuntimeMoniker.Net60)]
 	[MemoryDiagnoser]
 	public class BasicSiteCrawlBenchmark
 	{
@@ -38,7 +35,7 @@ namespace InfinityCrawler.Tests.Benchmarks
 		[Benchmark]
 		public async Task CrawlSite()
 		{
-			var result = await Crawler.Crawl(Uri, new CrawlSettings
+			_ = await Crawler.Crawl(Uri, new CrawlSettings
 			{
 				RequestProcessorOptions = new RequestProcessorOptions
 				{
