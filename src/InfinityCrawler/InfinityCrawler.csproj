@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
-    <AssemblyName>InfinityCrawler</AssemblyName>
-    <Description>A simple but powerful web crawler library</Description>
-    <PackageTags>$(PackageBaseTags)</PackageTags>
-    <Authors>James Turner</Authors>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<AssemblyName>InfinityCrawler</AssemblyName>
+		<Description>A simple but powerful web crawler library</Description>
+		<PackageTags>$(PackageBaseTags)</PackageTags>
+		<Authors>James Turner</Authors>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.12" />
-    <PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.7.0" />
-    <PackageReference Include="TurnerSoftware.SitemapTools" Version="0.6.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.12" />
+		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.7.0" />
+		<PackageReference Include="TurnerSoftware.SitemapTools" Version="0.6.0" />
+	</ItemGroup>
 
 </Project>
