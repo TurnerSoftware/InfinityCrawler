@@ -28,7 +28,15 @@ namespace InfinityCrawler.Tests.TestSite
 					Path.Combine(Directory.GetCurrentDirectory(), $"Resources/{Context.SiteFolder}"))
 			});
 
+#if NET6_0_OR_GREATER
+			app.UseRouting();
+			app.UseEndpoints(endpoints =>
+			{
+				endpoints.MapControllers();
+			});
+#else
 			app.UseMvc();
+#endif
 		}
 	}
 }

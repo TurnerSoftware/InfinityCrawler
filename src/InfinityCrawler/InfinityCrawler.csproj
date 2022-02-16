@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFrameworks>netstandard2.0;net6.0</TargetFrameworks>
 		<AssemblyName>InfinityCrawler</AssemblyName>
 		<Description>A simple but powerful web crawler library</Description>
 		<PackageTags>$(PackageBaseTags)</PackageTags>
@@ -10,9 +10,16 @@
 
 	<ItemGroup>
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.22" />
 		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.8.1" />
 		<PackageReference Include="TurnerSoftware.SitemapTools" Version="0.7.0" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework) == 'netstandard2.0'">
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.22" />
+	</ItemGroup>
+
+	<ItemGroup Condition="$(TargetFramework) == 'net6.0'">
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
 	</ItemGroup>
 
 </Project>
