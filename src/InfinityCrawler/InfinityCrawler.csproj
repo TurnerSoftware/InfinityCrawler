@@ -10,7 +10,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.42" />
-		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.8.1" />
+		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.8.1+g849e98b-github.1456491389" />
 		<PackageReference Include="TurnerSoftware.SitemapTools" Version="0.7.1" />
 	</ItemGroup>
 
