@@ -80,10 +80,15 @@ namespace InfinityCrawler
 
 		private void UpdateCrawlDelay(RobotsFile robotsFile, string userAgent, RequestProcessorOptions requestProcessorOptions)
 		{
+			var minimumCrawlDelayInMilliseconds = 0;
+
 			//Apply Robots.txt crawl-delay (if defined)
-			var userAgentEntry = robotsFile.GetEntryForUserAgent(userAgent);
-			var minimumCrawlDelay = userAgentEntry?.CrawlDelay ?? 0;
-			var taskDelay = Math.Max(minimumCrawlDelay * 1000, requestProcessorOptions.DelayBetweenRequestStart.TotalMilliseconds);
+			if (robotsFile.TryGetEntryForUserAgent(userAgent, out var accessEntry))
+			{
+				minimumCrawlDelayInMilliseconds = accessEntry.CrawlDelay ?? 0 * 1000;
+			}
+
+			var taskDelay = Math.Max(minimumCrawlDelayInMilliseconds, requestProcessorOptions.DelayBetweenRequestStart.TotalMilliseconds);
 			requestProcessorOptions.DelayBetweenRequestStart = new TimeSpan(0, 0, 0, 0, (int)taskDelay);
 		}
 	}

@@ -10,8 +10,8 @@
 
 	<ItemGroup>
 		<PackageReference Include="HtmlAgilityPack" Version="1.11.43" />
-		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.8.1" />
-		<PackageReference Include="TurnerSoftware.SitemapTools" Version="0.7.1" />
+		<PackageReference Include="TurnerSoftware.RobotsExclusionTools" Version="0.9.1" />
+		<PackageReference Include="TurnerSoftware.SitemapTools" Version="0.7.2" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework) == 'netstandard2.0'">
