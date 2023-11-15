@@ -22,7 +22,7 @@
 		<When Condition="$(TargetFramework) == 'net6.0'">
 			<ItemGroup>
 				<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-				<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="6.0.0" />
+				<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 				<PackageReference Include="Microsoft.Extensions.Logging.TraceSource" Version="6.0.0" />
 			</ItemGroup>
 		</When>
@@ -30,7 +30,7 @@
 			<ItemGroup>
 				<!-- These are the highest versions that are compatible with all other target frameworks -->
 				<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="3.1.22" />
-				<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="3.1.22" />
+				<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.0" />
 				<PackageReference Include="Microsoft.Extensions.Logging.TraceSource" Version="3.1.22" />
 			</ItemGroup>
 		</Otherwise>
